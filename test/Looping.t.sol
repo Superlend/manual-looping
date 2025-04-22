@@ -8,6 +8,7 @@ import {LZToken} from "../src/mock/LZ-Token.sol";
 import {TestBase} from "./TestBase.sol";
 import {IPoolConfigurator} from "aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
 import {ICreditDelegationToken} from "aave-v3-core/contracts/interfaces/ICreditDelegationToken.sol";
+import {console} from "forge-std/console.sol";
 
 contract LoopingLeverageTest is TestBase {
     LoopingLeverage public loopingLeverage;
@@ -58,8 +59,18 @@ contract LoopingLeverageTest is TestBase {
 
         vm.stopPrank();
 
-        // assert that the user has 200$ worth of ETH as exposure
-        // assert that the user has 100$ worth of WXTZ as borrow
+        (uint256 supply, , , , , , , , ) = poolDataProvider.getUserReserveData(
+            supplyToken,
+            USER
+        );
+
+        (, , uint256 borrow, , , , , , ) = poolDataProvider.getUserReserveData(
+            borrowToken,
+            USER
+        );
+
+        assertTrue(supply > 0);
+        assertTrue(borrow > 0);
     }
 
     function test_loopMultipleTokenHop() public {
@@ -100,8 +111,18 @@ contract LoopingLeverageTest is TestBase {
 
         vm.stopPrank();
 
-        // assert that the user has 200$ worth of ETH as exposure
-        // assert that the user has 100$ worth of USDC as borrow
+        (uint256 supply, , , , , , , , ) = poolDataProvider.getUserReserveData(
+            supplyToken,
+            USER
+        );
+
+        (, , uint256 borrow, , , , , , ) = poolDataProvider.getUserReserveData(
+            borrowToken,
+            USER
+        );
+
+        assertTrue(supply > 0);
+        assertTrue(borrow > 0);
     }
 
     function _updateBorrowCap(address token) internal {
