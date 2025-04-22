@@ -22,15 +22,58 @@ contract LoopingLeverageTest is TestBase {
         );
     }
 
-    function test_loop() public {
+    function test_loopSingleTokenHop() public {
+        // try to go 2x long on ETH/WXTZ
+        // Supply ETH 100$ worth of ETH, end up with 200$ worth of ETH as exposure and 100$ of WXTZ as borrow
+        // no path tokens needed
+
+        address supplyToken = ETH;
+        address borrowToken = WXTZ;
+        address[] memory pathTokens = new address[](0);
+        uint24[] memory pathFees = new uint24[](1);
+        pathFees[0] = 500;
+        address DEBT_TOKEN = WXTZ_DEBT_TOKEN;
+
+        uint256 desiredLever = 2;
+        uint256 supplyAmount = ETH_AMOUNT;
+        uint256 flashLoanAmount = (supplyAmount * desiredLever) - supplyAmount;
+
+        _updateBorrowCap(borrowToken);
+
+        vm.startPrank(USER);
+        IERC20(supplyToken).approve(address(loopingLeverage), supplyAmount);
+        ICreditDelegationToken(DEBT_TOKEN).approveDelegation(
+            address(loopingLeverage),
+            type(uint256).max
+        );
+
+        loopingLeverage.loop(
+            supplyToken,
+            borrowToken,
+            supplyAmount,
+            flashLoanAmount,
+            pathTokens,
+            pathFees
+        );
+
+        vm.stopPrank();
+
+        // assert that the user has 200$ worth of ETH as exposure
+        // assert that the user has 100$ worth of WXTZ as borrow
+    }
+
+    function test_loopMultipleTokenHop() public {
         // try to go 2x long on ETH/USDC
         // Supply ETH 100$ worth of ETH, end up with 200$ worth of ETH as exposure and 100$ of USDC as borrow
         // use path token of wxtz
 
         address supplyToken = ETH;
         address borrowToken = USDC;
-        address swapPathToken = WXTZ;
-
+        address[] memory pathTokens = new address[](1);
+        pathTokens[0] = WXTZ;
+        uint24[] memory pathFees = new uint24[](2);
+        pathFees[0] = 500;
+        pathFees[1] = 500;
         address DEBT_TOKEN = USDC_DEBT_TOKEN;
 
         uint256 desiredLever = 2;
@@ -46,20 +89,19 @@ contract LoopingLeverageTest is TestBase {
             type(uint256).max
         );
 
-        uint256 borrowAmount = 101 * 10 ** USDC_DECIMALS;
-
         loopingLeverage.loop(
             supplyToken,
             borrowToken,
             supplyAmount,
             flashLoanAmount,
-            borrowAmount,
-            swapPathToken,
-            poolFee1,
-            poolFee2
+            pathTokens,
+            pathFees
         );
 
         vm.stopPrank();
+
+        // assert that the user has 200$ worth of ETH as exposure
+        // assert that the user has 100$ worth of USDC as borrow
     }
 
     function _updateBorrowCap(address token) internal {

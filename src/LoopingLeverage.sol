@@ -43,9 +43,7 @@ contract LoopingLeverage is
         );
 
         if (operation == DataTypes.Operation.LOOP) {
-            DataTypes.LoopParams memory loopParams = _decodeLoopParams(
-                params[32:]
-            );
+            DataTypes.LoopParams memory loopParams = _decodeLoopParams(params);
             _executeLoop(loopParams, amount, premium);
             return true;
         } else if (operation == DataTypes.Operation.UNLOOP) {
@@ -65,10 +63,8 @@ contract LoopingLeverage is
         address borrowToken,
         uint256 supplyAmount,
         uint256 flashLoanAmount,
-        uint256 borrowAmount,
-        address swapPathToken,
-        uint24 poolFee1,
-        uint24 poolFee2
+        address[] memory swapPathTokens,
+        uint24[] memory swapPathFees
     ) external nonReentrant {
         // transfer from user to this contract
         IERC20(supplyToken).transferFrom(
@@ -86,10 +82,8 @@ contract LoopingLeverage is
             supplyToken,
             borrowToken,
             flashLoanAmount,
-            borrowAmount,
-            swapPathToken,
-            poolFee1,
-            poolFee2
+            swapPathTokens,
+            swapPathFees
         );
 
         // take a flash loan
@@ -113,17 +107,25 @@ contract LoopingLeverage is
 
         // calculate the amount of borrow token to borrow to repay the flash loan + premium
         uint256 flashLoanAmount = amount + premium;
-        uint256 amountToBorrow = loopParams.borrowAmount;
 
-        _approveSwapRouter(loopParams.borrowToken, amountToBorrow);
-        // _calculateAmountToBorrow(
-        //     loopParams.borrowToken,
-        //     loopParams.supplyToken,
-        //     loopParams.swapPathToken,
-        //     loopParams.poolFee1,
-        //     loopParams.poolFee2,
-        //     flashLoanAmount
-        // );
+        bytes memory path = _getPath(
+            loopParams.supplyToken,
+            loopParams.swapPathTokens,
+            loopParams.swapPathFees,
+            loopParams.borrowToken
+        );
+        uint256 amountToBorrow = loopParams.swapPathTokens.length == 0
+            ? _calculateAmountToBorrowSingle(
+                loopParams.borrowToken,
+                loopParams.supplyToken,
+                loopParams.swapPathFees[0],
+                flashLoanAmount
+            )
+            : _calculateAmountToBorrow(
+                loopParams.borrowToken,
+                path,
+                flashLoanAmount
+            );
 
         // borrow the amount
         POOL.borrow(
@@ -135,30 +137,28 @@ contract LoopingLeverage is
         );
 
         // swap the borrow token to the supply token
-        uint256 swappedAmount = loopParams.swapPathToken == address(0)
+        _approveSwapRouter(loopParams.borrowToken, amountToBorrow);
+        loopParams.swapPathTokens.length == 0
             ? _swapExactOutputSingle(
                 loopParams.borrowToken,
                 loopParams.supplyToken,
-                loopParams.poolFee1,
+                loopParams.swapPathFees[0],
                 amountToBorrow,
                 flashLoanAmount
             )
-            : _swapExactOutput(
-                _getPath(
-                    loopParams.borrowToken,
-                    loopParams.supplyToken,
-                    loopParams.poolFee1,
-                    loopParams.poolFee2
-                ),
-                amountToBorrow,
-                flashLoanAmount
-            );
+            : _swapExactOutput(path, amountToBorrow, flashLoanAmount);
 
-        if (swappedAmount > flashLoanAmount) {
-            uint256 extraSwappedToken = swappedAmount - flashLoanAmount;
+        uint256 leftOverAmount = IERC20(loopParams.supplyToken).balanceOf(
+            address(this)
+        ) - flashLoanAmount;
+        if (leftOverAmount > 0) {
+            IERC20(loopParams.supplyToken).approve(
+                address(POOL),
+                leftOverAmount
+            );
             POOL.supply(
                 loopParams.supplyToken,
-                extraSwappedToken,
+                leftOverAmount,
                 loopParams.user,
                 0
             );

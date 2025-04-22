@@ -11,10 +11,8 @@ library DataTypes {
         address supplyToken;
         address borrowToken;
         uint256 flashLoanAmount;
-        uint256 borrowAmount;
-        address swapPathToken;
-        uint24 poolFee1;
-        uint24 poolFee2;
+        address[] swapPathTokens;
+        uint24[] swapPathFees;
         address user;
     }
 }

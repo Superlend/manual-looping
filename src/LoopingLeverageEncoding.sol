@@ -8,61 +8,76 @@ abstract contract LoopingLeverageEncoding {
         address supplyToken,
         address borrowToken,
         uint256 flashLoanAmount,
-        uint256 borrowAmount,
-        address swapPathToken,
-        uint24 poolFee1,
-        uint24 poolFee2
+        address[] memory swapPathTokens,
+        uint24[] memory swapPathFees
     ) internal view returns (bytes memory) {
         bytes memory params = abi.encode(
             DataTypes.Operation.LOOP,
             supplyToken,
             borrowToken,
             flashLoanAmount,
-            borrowAmount,
-            swapPathToken,
-            poolFee1,
-            poolFee2,
-            msg.sender
+            msg.sender,
+            swapPathTokens,
+            swapPathFees
         );
 
         return params;
     }
 
     function _decodeLoopParams(
-        bytes memory params
+        bytes calldata params
     ) internal pure returns (DataTypes.LoopParams memory) {
+        // static values
         (
             address supplyToken,
             address borrowToken,
             uint256 flashLoanAmount,
-            uint256 borrowAmount,
-            address swapPathToken,
-            uint24 poolFee1,
-            uint24 poolFee2,
             address user
         ) = abi.decode(
-                params,
-                (
-                    address,
-                    address,
-                    uint256,
-                    uint256,
-                    address,
-                    uint24,
-                    uint24,
-                    address
-                )
+                params[32:192], // 4 * 32 bytes
+                (address, address, uint256, address)
             );
+
+        // Offset of 7 slots: 5 - static data, 2 - offset values
+        uint256 offset = 224;
+
+        // decode path tokens array
+        uint256 sizeOfPathTokens = abi.decode(
+            params[offset:offset + 32],
+            (uint256)
+        );
+        offset += 32;
+        address[] memory swapPathTokens = new address[](sizeOfPathTokens);
+        for (uint256 i; i < sizeOfPathTokens; ) {
+            swapPathTokens[i] = abi.decode(
+                params[offset:offset + 32],
+                (address)
+            );
+            unchecked {
+                offset += 32;
+                ++i;
+            }
+        }
+
+        // decode fees array
+        uint256 sizeOfFees = abi.decode(params[offset:offset + 32], (uint256));
+        uint24[] memory swapPathFees = new uint24[](sizeOfFees);
+        offset += 32;
+        for (uint256 i; i < sizeOfFees; ) {
+            swapPathFees[i] = abi.decode(params[offset:offset + 32], (uint24));
+            unchecked {
+                offset += 32;
+                ++i;
+            }
+        }
 
         return
             DataTypes.LoopParams({
                 supplyToken: supplyToken,
                 borrowToken: borrowToken,
                 flashLoanAmount: flashLoanAmount,
-                borrowAmount: borrowAmount,
-                swapPathToken: swapPathToken,
-                poolFee1: poolFee1,
-                poolFee2: poolFee2,
+                swapPathTokens: swapPathTokens,
+                swapPathFees: swapPathFees,
                 user: user
             });
     }
