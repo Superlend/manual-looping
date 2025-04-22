@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {ISwapRouter} from "v3-periphery/interfaces/ISwapRouter.sol";
 import {IQuoterV2} from "v3-periphery/interfaces/IQuoterV2.sol";
-
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 abstract contract LoopingLeverageSwaps {
     ISwapRouter public immutable swapRouter;
     IQuoterV2 public immutable quoter;
@@ -100,5 +100,9 @@ abstract contract LoopingLeverageSwaps {
         );
 
         return path;
+    }
+
+    function _approveSwapRouter(address token, uint256 amount) internal {
+        IERC20(token).approve(address(swapRouter), amount);
     }
 }

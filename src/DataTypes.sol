@@ -10,8 +10,8 @@ library DataTypes {
     struct LoopParams {
         address supplyToken;
         address borrowToken;
-        uint256 supplyAmount;
         uint256 flashLoanAmount;
+        uint256 borrowAmount;
         address swapPathToken;
         uint24 poolFee1;
         uint24 poolFee2;

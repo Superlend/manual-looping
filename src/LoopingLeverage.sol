@@ -33,7 +33,7 @@ contract LoopingLeverage is
     ) external override returns (bool) {
         require(
             msg.sender == address(POOL),
-            "FlashLiquidations: Caller must be lending pool"
+            "LoopingLeverage: Caller must be lending pool"
         );
 
         // check if the params type is LOOP or UNLOOP
@@ -56,11 +56,16 @@ contract LoopingLeverage is
         return false;
     }
 
+    function unloop() external nonReentrant {
+        // TODO: implement unloop
+    }
+
     function loop(
         address supplyToken,
         address borrowToken,
         uint256 supplyAmount,
         uint256 flashLoanAmount,
+        uint256 borrowAmount,
         address swapPathToken,
         uint24 poolFee1,
         uint24 poolFee2
@@ -81,6 +86,7 @@ contract LoopingLeverage is
             supplyToken,
             borrowToken,
             flashLoanAmount,
+            borrowAmount,
             swapPathToken,
             poolFee1,
             poolFee2
@@ -107,14 +113,17 @@ contract LoopingLeverage is
 
         // calculate the amount of borrow token to borrow to repay the flash loan + premium
         uint256 flashLoanAmount = amount + premium;
-        uint256 amountToBorrow = _calculateAmountToBorrow(
-            loopParams.borrowToken,
-            loopParams.supplyToken,
-            loopParams.swapPathToken,
-            loopParams.poolFee1,
-            loopParams.poolFee2,
-            flashLoanAmount
-        );
+        uint256 amountToBorrow = loopParams.borrowAmount;
+
+        _approveSwapRouter(loopParams.borrowToken, amountToBorrow);
+        // _calculateAmountToBorrow(
+        //     loopParams.borrowToken,
+        //     loopParams.supplyToken,
+        //     loopParams.swapPathToken,
+        //     loopParams.poolFee1,
+        //     loopParams.poolFee2,
+        //     flashLoanAmount
+        // );
 
         // borrow the amount
         POOL.borrow(
@@ -157,5 +166,9 @@ contract LoopingLeverage is
 
         // repay the flash loan
         IERC20(loopParams.supplyToken).approve(address(POOL), flashLoanAmount);
+    }
+
+    function _executeUnloop() internal {
+        // TODO: implement unloop
     }
 }

@@ -8,6 +8,7 @@ abstract contract LoopingLeverageEncoding {
         address supplyToken,
         address borrowToken,
         uint256 flashLoanAmount,
+        uint256 borrowAmount,
         address swapPathToken,
         uint24 poolFee1,
         uint24 poolFee2
@@ -17,6 +18,7 @@ abstract contract LoopingLeverageEncoding {
             supplyToken,
             borrowToken,
             flashLoanAmount,
+            borrowAmount,
             swapPathToken,
             poolFee1,
             poolFee2,
@@ -32,8 +34,8 @@ abstract contract LoopingLeverageEncoding {
         (
             address supplyToken,
             address borrowToken,
-            uint256 supplyAmount,
             uint256 flashLoanAmount,
+            uint256 borrowAmount,
             address swapPathToken,
             uint24 poolFee1,
             uint24 poolFee2,
@@ -56,8 +58,8 @@ abstract contract LoopingLeverageEncoding {
             DataTypes.LoopParams({
                 supplyToken: supplyToken,
                 borrowToken: borrowToken,
-                supplyAmount: supplyAmount,
                 flashLoanAmount: flashLoanAmount,
+                borrowAmount: borrowAmount,
                 swapPathToken: swapPathToken,
                 poolFee1: poolFee1,
                 poolFee2: poolFee2,
