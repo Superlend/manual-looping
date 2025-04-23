@@ -16,11 +16,7 @@ contract UnloopingTest is TestBase {
     function setUp() public override {
         super.setUp();
 
-        loopingLeverage = new LoopingLeverage(
-            IPoolAddressesProvider(ADDRESSES_PROVIDER),
-            SWAP_ROUTER,
-            QUOTER_V2
-        );
+        loopingLeverage = new LoopingLeverage(IPoolAddressesProvider(ADDRESSES_PROVIDER), SWAP_ROUTER, QUOTER_V2);
     }
 
     function test_unloopSingleTokenHop() public {
@@ -41,13 +37,7 @@ contract UnloopingTest is TestBase {
         vm.startPrank(USER);
         // approve aToken to be spent by loopingLeverage
         IERC20(aToken).approve(address(loopingLeverage), type(uint256).max);
-        loopingLeverage.unloop(
-            supplyToken,
-            borrowToken,
-            repayAmount,
-            pathTokens,
-            pathFees
-        );
+        loopingLeverage.unloop(supplyToken, borrowToken, repayAmount, pathTokens, pathFees);
         vm.stopPrank();
     }
 
@@ -71,22 +61,13 @@ contract UnloopingTest is TestBase {
         vm.startPrank(USER);
         // approve aToken to be spent by loopingLeverage
         IERC20(aToken).approve(address(loopingLeverage), type(uint256).max);
-        loopingLeverage.unloop(
-            supplyToken,
-            borrowToken,
-            repayAmount,
-            pathTokens,
-            pathFees
-        );
+        loopingLeverage.unloop(supplyToken, borrowToken, repayAmount, pathTokens, pathFees);
         vm.stopPrank();
     }
 
-    function _loopSingleHop(
-        address supplyToken,
-        address borrowToken,
-        address debtToken,
-        uint256 supplyAmount
-    ) internal {
+    function _loopSingleHop(address supplyToken, address borrowToken, address debtToken, uint256 supplyAmount)
+        internal
+    {
         address[] memory pathTokens = new address[](0);
         uint24[] memory pathFees = new uint24[](1);
         pathFees[0] = 500;
@@ -99,29 +80,16 @@ contract UnloopingTest is TestBase {
 
         vm.startPrank(USER);
         IERC20(supplyToken).approve(address(loopingLeverage), supplyAmount);
-        ICreditDelegationToken(DEBT_TOKEN).approveDelegation(
-            address(loopingLeverage),
-            type(uint256).max
-        );
+        ICreditDelegationToken(DEBT_TOKEN).approveDelegation(address(loopingLeverage), type(uint256).max);
 
-        loopingLeverage.loop(
-            supplyToken,
-            borrowToken,
-            supplyAmount,
-            flashLoanAmount,
-            pathTokens,
-            pathFees
-        );
+        loopingLeverage.loop(supplyToken, borrowToken, supplyAmount, flashLoanAmount, pathTokens, pathFees);
 
         vm.stopPrank();
     }
 
-    function _loopMultiHop(
-        address supplyToken,
-        address borrowToken,
-        address debtToken,
-        uint256 supplyAmount
-    ) internal {
+    function _loopMultiHop(address supplyToken, address borrowToken, address debtToken, uint256 supplyAmount)
+        internal
+    {
         address[] memory pathTokens = new address[](1);
         pathTokens[0] = WXTZ;
         uint24[] memory pathFees = new uint24[](2);
@@ -136,26 +104,15 @@ contract UnloopingTest is TestBase {
 
         vm.startPrank(USER);
         IERC20(supplyToken).approve(address(loopingLeverage), supplyAmount);
-        ICreditDelegationToken(DEBT_TOKEN).approveDelegation(
-            address(loopingLeverage),
-            type(uint256).max
-        );
+        ICreditDelegationToken(DEBT_TOKEN).approveDelegation(address(loopingLeverage), type(uint256).max);
 
-        loopingLeverage.loop(
-            supplyToken,
-            borrowToken,
-            supplyAmount,
-            flashLoanAmount,
-            pathTokens,
-            pathFees
-        );
+        loopingLeverage.loop(supplyToken, borrowToken, supplyAmount, flashLoanAmount, pathTokens, pathFees);
 
         vm.stopPrank();
     }
 
     function _updateBorrowCap(address token) internal {
-        address poolConfigurator = IPoolAddressesProvider(ADDRESSES_PROVIDER)
-            .getPoolConfigurator();
+        address poolConfigurator = IPoolAddressesProvider(ADDRESSES_PROVIDER).getPoolConfigurator();
 
         vm.prank(ETHERLINK_MARKET_ADMIN);
 

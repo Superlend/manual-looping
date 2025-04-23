@@ -12,9 +12,7 @@ interface IV3SwapRouter {
         uint160 sqrtPriceLimitX96;
     }
 
-    function exactOutputSingle(
-        ExactOutputSingleParams calldata params
-    ) external payable returns (uint256 amountIn);
+    function exactOutputSingle(ExactOutputSingleParams calldata params) external payable returns (uint256 amountIn);
 
     struct ExactOutputParams {
         bytes path;
@@ -23,7 +21,5 @@ interface IV3SwapRouter {
         uint256 amountInMaximum;
     }
 
-    function exactOutput(
-        ExactOutputParams calldata params
-    ) external payable returns (uint256 amountIn);
+    function exactOutput(ExactOutputParams calldata params) external payable returns (uint256 amountIn);
 }
