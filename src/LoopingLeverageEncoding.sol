@@ -3,7 +3,21 @@ pragma solidity ^0.8.0;
 
 import {DataTypes} from "./DataTypes.sol";
 
+/**
+ * @title LoopingLeverageEncoding
+ * @notice Abstract contract handling parameter encoding and decoding for loop/unloop operations
+ * @dev Provides functionality to encode parameters for flash loan operations and decode them during execution
+ */
 abstract contract LoopingLeverageEncoding {
+    /**
+     * @notice Encodes loop operation parameters into bytes
+     * @param supplyToken The token to be supplied
+     * @param borrowToken The token to be borrowed
+     * @param flashLoanAmount The amount to be flash loaned
+     * @param swapPathTokens The tokens in the swap path
+     * @param swapPathFees The pool fees for each swap
+     * @return The encoded parameters
+     */
     function _encodeLoopParams(
         address supplyToken,
         address borrowToken,
@@ -24,6 +38,11 @@ abstract contract LoopingLeverageEncoding {
         return params;
     }
 
+    /**
+     * @notice Decodes loop operation parameters from bytes
+     * @param params The encoded parameters
+     * @return The decoded LoopParams struct
+     */
     function _decodeLoopParams(
         bytes calldata params
     ) internal pure returns (DataTypes.LoopParams memory) {
@@ -82,6 +101,15 @@ abstract contract LoopingLeverageEncoding {
             });
     }
 
+    /**
+     * @notice Encodes unloop operation parameters into bytes
+     * @param supplyToken The token to be withdrawn
+     * @param borrowToken The token to be repaid
+     * @param repayAmount The amount to be repaid
+     * @param swapPathTokens The tokens in the swap path
+     * @param swapPathFees The pool fees for each swap
+     * @return The encoded parameters
+     */
     function _encodeUnloopParams(
         address supplyToken,
         address borrowToken,
@@ -102,6 +130,11 @@ abstract contract LoopingLeverageEncoding {
         return params;
     }
 
+    /**
+     * @notice Decodes unloop operation parameters from bytes
+     * @param params The encoded parameters
+     * @return The decoded UnloopParams struct
+     */
     function _decodeUnloopParams(
         bytes calldata params
     ) internal pure returns (DataTypes.UnloopParams memory) {

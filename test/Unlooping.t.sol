@@ -79,16 +79,6 @@ contract UnloopingTest is TestBase {
             pathFees
         );
         vm.stopPrank();
-
-        (uint256 supply, , , , , , , , ) = poolDataProvider.getUserReserveData(
-            supplyToken,
-            USER
-        );
-
-        (, , uint256 borrow, , , , , , ) = poolDataProvider.getUserReserveData(
-            borrowToken,
-            USER
-        );
     }
 
     function _loopSingleHop(
@@ -161,16 +151,6 @@ contract UnloopingTest is TestBase {
         );
 
         vm.stopPrank();
-
-        (uint256 supply, , , , , , , , ) = poolDataProvider.getUserReserveData(
-            supplyToken,
-            USER
-        );
-
-        (, , uint256 borrow, , , , , , ) = poolDataProvider.getUserReserveData(
-            borrowToken,
-            USER
-        );
     }
 
     function _updateBorrowCap(address token) internal {

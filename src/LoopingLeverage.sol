@@ -9,12 +9,23 @@ import {DataTypes} from "./DataTypes.sol";
 import {LoopingLeverageSwaps} from "./LoopingLeverageSwaps.sol";
 import {LoopingLeverageEncoding} from "./LoopingLeverageEncoding.sol";
 
+/**
+ * @title LoopingLeverage
+ * @notice Main contract for executing leverage operations using Aave V3 flash loans
+ * @dev Inherits from FlashLoanSimpleReceiverBase, ReentrancyGuard, LoopingLeverageSwaps, and LoopingLeverageEncoding
+ */
 contract LoopingLeverage is
     FlashLoanSimpleReceiverBase,
     ReentrancyGuard,
     LoopingLeverageSwaps,
     LoopingLeverageEncoding
 {
+    /**
+     * @notice Constructor initializes the contract with required dependencies
+     * @param _addressProvider The Aave V3 pool addresses provider
+     * @param _swapRouter The Uniswap V3 swap router address
+     * @param _quoter The Uniswap V3 quoter address
+     */
     constructor(
         IPoolAddressesProvider _addressProvider,
         address _swapRouter,
@@ -24,6 +35,14 @@ contract LoopingLeverage is
         LoopingLeverageSwaps(_swapRouter, _quoter)
     {}
 
+    /**
+     * @notice Executes the flash loan operation
+     * @dev This is the callback function called by Aave V3 after a flash loan
+     * @param amount The amount of the flash loan
+     * @param premium The fee to be paid for the flash loan
+     * @param params The encoded parameters for the operation
+     * @return bool indicating success
+     */
     function executeOperation(
         address,
         uint256 amount,
@@ -58,6 +77,14 @@ contract LoopingLeverage is
         return false;
     }
 
+    /**
+     * @notice Initiates an unloop operation to decrease leverage
+     * @param supplyToken The token to be withdrawn
+     * @param borrowToken The token to be repaid
+     * @param repayAmount The amount to be repaid
+     * @param swapPathTokens The tokens in the swap path
+     * @param swapPathFees The pool fees for each swap
+     */
     function unloop(
         address supplyToken,
         address borrowToken,
@@ -83,6 +110,15 @@ contract LoopingLeverage is
         );
     }
 
+    /**
+     * @notice Initiates a loop operation to increase leverage
+     * @param supplyToken The token to be supplied
+     * @param borrowToken The token to be borrowed
+     * @param supplyAmount The initial amount to supply
+     * @param flashLoanAmount The amount to be flash loaned
+     * @param swapPathTokens The tokens in the swap path
+     * @param swapPathFees The pool fees for each swap
+     */
     function loop(
         address supplyToken,
         address borrowToken,
@@ -121,6 +157,13 @@ contract LoopingLeverage is
         );
     }
 
+    /**
+     * @notice Executes the loop operation logic
+     * @dev Internal function called by executeOperation for loop operations
+     * @param loopParams The decoded loop parameters
+     * @param amount The flash loan amount
+     * @param premium The flash loan premium
+     */
     function _executeLoop(
         DataTypes.LoopParams memory loopParams,
         uint256 amount,
@@ -193,6 +236,13 @@ contract LoopingLeverage is
         IERC20(loopParams.supplyToken).approve(address(POOL), flashLoanAmount);
     }
 
+    /**
+     * @notice Executes the unloop operation logic
+     * @dev Internal function called by executeOperation for unloop operations
+     * @param unloopParams The decoded unloop parameters
+     * @param amount The flash loan amount
+     * @param premium The flash loan premium
+     */
     function _executeUnloop(
         DataTypes.UnloopParams memory unloopParams,
         uint256 amount,
@@ -228,12 +278,7 @@ contract LoopingLeverage is
         address aToken = POOL
             .getReserveData(unloopParams.supplyToken)
             .aTokenAddress;
-        // uint256 normalizedIncome = POOL.getReserveNormalizedIncome(
-        //     unloopParams.supplyToken
-        // );
 
-        // transfer aTokens from user to this contract
-        // uint256 amountOfAToken = amountToWithdraw / normalizedIncome;
         IERC20(aToken).transferFrom(
             unloopParams.user,
             address(this),
