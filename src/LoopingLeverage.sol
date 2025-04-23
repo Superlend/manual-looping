@@ -48,14 +48,39 @@ contract LoopingLeverage is
             return true;
         } else if (operation == DataTypes.Operation.UNLOOP) {
             // operate unloop type of action
+            DataTypes.UnloopParams memory unloopParams = _decodeUnloopParams(
+                params
+            );
+            _executeUnloop(unloopParams, amount, premium);
             return true;
         }
 
         return false;
     }
 
-    function unloop() external nonReentrant {
-        // TODO: implement unloop
+    function unloop(
+        address supplyToken,
+        address borrowToken,
+        uint256 repayAmount,
+        address[] memory swapPathTokens,
+        uint24[] memory swapPathFees
+    ) external nonReentrant {
+        // flashloan the repay amount
+        bytes memory params = _encodeUnloopParams(
+            supplyToken,
+            borrowToken,
+            repayAmount,
+            swapPathTokens,
+            swapPathFees
+        );
+
+        POOL.flashLoanSimple(
+            address(this),
+            address(borrowToken),
+            repayAmount,
+            params,
+            0
+        );
     }
 
     function loop(
@@ -168,7 +193,93 @@ contract LoopingLeverage is
         IERC20(loopParams.supplyToken).approve(address(POOL), flashLoanAmount);
     }
 
-    function _executeUnloop() internal {
-        // TODO: implement unloop
+    function _executeUnloop(
+        DataTypes.UnloopParams memory unloopParams,
+        uint256 amount,
+        uint256 premium
+    ) internal {
+        // repay the borrow amount onbehalf of the user
+        IERC20(unloopParams.borrowToken).approve(address(POOL), amount);
+        POOL.repay(unloopParams.borrowToken, amount, 2, unloopParams.user);
+
+        uint256 flashLoanAmount = amount + premium;
+
+        // get quote of supplyToken required to repay flashLoanAmount of borrowToken
+        bytes memory path = _getPath(
+            unloopParams.borrowToken,
+            unloopParams.swapPathTokens,
+            unloopParams.swapPathFees,
+            unloopParams.supplyToken
+        );
+        uint256 amountToWithdraw = unloopParams.swapPathTokens.length == 0
+            ? _calculateAmountToBorrowSingle(
+                unloopParams.supplyToken,
+                unloopParams.borrowToken,
+                unloopParams.swapPathFees[0],
+                flashLoanAmount
+            )
+            : _calculateAmountToBorrow(
+                unloopParams.supplyToken,
+                path,
+                flashLoanAmount
+            );
+
+        // calculate the amount of aTokens required
+        address aToken = POOL
+            .getReserveData(unloopParams.supplyToken)
+            .aTokenAddress;
+        // uint256 normalizedIncome = POOL.getReserveNormalizedIncome(
+        //     unloopParams.supplyToken
+        // );
+
+        // transfer aTokens from user to this contract
+        // uint256 amountOfAToken = amountToWithdraw / normalizedIncome;
+        IERC20(aToken).transferFrom(
+            unloopParams.user,
+            address(this),
+            amountToWithdraw
+        );
+
+        // withdraw the aTokens
+        POOL.withdraw(
+            unloopParams.supplyToken,
+            IERC20(aToken).balanceOf(address(this)),
+            address(this)
+        );
+
+        // swap
+        _approveSwapRouter(unloopParams.supplyToken, amountToWithdraw);
+        unloopParams.swapPathTokens.length == 0
+            ? _swapExactOutputSingle(
+                unloopParams.supplyToken,
+                unloopParams.borrowToken,
+                unloopParams.swapPathFees[0],
+                amountToWithdraw,
+                flashLoanAmount
+            )
+            : _swapExactOutput(path, amountToWithdraw, flashLoanAmount);
+
+        // repay the flash loan
+        uint256 leftOverAmount = IERC20(unloopParams.supplyToken).balanceOf(
+            address(this)
+        );
+        if (leftOverAmount > 0) {
+            IERC20(unloopParams.supplyToken).approve(
+                address(POOL),
+                leftOverAmount
+            );
+            POOL.supply(
+                unloopParams.supplyToken,
+                leftOverAmount,
+                unloopParams.user,
+                0
+            );
+        }
+
+        // repay the flash loan
+        IERC20(unloopParams.borrowToken).approve(
+            address(POOL),
+            flashLoanAmount
+        );
     }
 }

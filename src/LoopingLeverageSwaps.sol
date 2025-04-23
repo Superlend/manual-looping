@@ -18,28 +18,25 @@ abstract contract LoopingLeverageSwaps {
     function _calculateAmountToBorrow(
         address tokenIn,
         bytes memory path,
-        uint256 flashLoanAmount
+        uint256 amount
     ) internal returns (uint256) {
         _approveQuoter(tokenIn, type(uint256).max);
-        (uint256 amountIn, , , ) = quoter.quoteExactOutput(
-            path,
-            flashLoanAmount
-        );
+        (uint256 amountIn, , , ) = quoter.quoteExactOutput(path, amount);
 
         return amountIn;
     }
 
     function _calculateAmountToBorrowSingle(
-        address borrowToken,
-        address supplyToken,
+        address tokenIn,
+        address tokenOut,
         uint24 poolFee,
-        uint256 flashLoanAmount
+        uint256 amount
     ) internal returns (uint256) {
         IQuoterV2.QuoteExactOutputSingleParams memory quoteParams = IQuoterV2
             .QuoteExactOutputSingleParams({
-                tokenIn: borrowToken,
-                tokenOut: supplyToken,
-                amount: flashLoanAmount,
+                tokenIn: tokenIn,
+                tokenOut: tokenOut,
+                amount: amount,
                 fee: poolFee,
                 sqrtPriceLimitX96: 0
             });

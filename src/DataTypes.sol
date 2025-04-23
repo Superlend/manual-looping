@@ -15,4 +15,13 @@ library DataTypes {
         uint24[] swapPathFees;
         address user;
     }
+
+    struct UnloopParams {
+        address supplyToken;
+        address borrowToken;
+        uint256 repayAmount;
+        address[] swapPathTokens;
+        uint24[] swapPathFees;
+        address user;
+    }
 }
