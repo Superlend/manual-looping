@@ -36,6 +36,7 @@ contract LoopingLeverageTest is TestBase {
         uint256 flashLoanAmount = (supplyAmount * desiredLever) - supplyAmount;
 
         _updateBorrowCap(borrowToken);
+        uint256 initalBalance = IERC20(supplyToken).balanceOf(address(this));
 
         vm.startPrank(USER);
         IERC20(supplyToken).approve(address(loopingLeverage), supplyAmount);
@@ -51,6 +52,9 @@ contract LoopingLeverageTest is TestBase {
 
         assertTrue(supply > 0);
         assertTrue(borrow > 0);
+
+        uint256 finalBalance = IERC20(supplyToken).balanceOf(address(this));
+        assertTrue(finalBalance > initalBalance);
     }
 
     function test_loopMultipleTokenHop() public {

@@ -51,4 +51,6 @@ library DataTypes {
         uint24[] swapPathFees;
         address user;
     }
+
+    uint256 constant DEFAULT_FEE_BPS = 5;
 }

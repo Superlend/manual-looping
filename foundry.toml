@@ -6,3 +6,6 @@ libs = ["lib"]
 
 [rpc_endpoints]
 etherlink="https://node.mainnet.etherlink.com"
+
+[etherscan]
+etherlink={ key = "NO_KEY", chain = 42793, url= "https://explorer.etherlink.com/api/" }

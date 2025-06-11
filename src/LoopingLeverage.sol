@@ -8,6 +8,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {DataTypes} from "./DataTypes.sol";
 import {LoopingLeverageSwaps} from "./LoopingLeverageSwaps.sol";
 import {LoopingLeverageEncoding} from "./LoopingLeverageEncoding.sol";
+import {LoopingLeverageFee} from "./LoopingLeverageFee.sol";
 
 /**
  * @title LoopingLeverage
@@ -18,7 +19,8 @@ contract LoopingLeverage is
     FlashLoanSimpleReceiverBase,
     ReentrancyGuard,
     LoopingLeverageSwaps,
-    LoopingLeverageEncoding
+    LoopingLeverageEncoding,
+    LoopingLeverageFee
 {
     /**
      * @notice Constructor initializes the contract with required dependencies
@@ -29,6 +31,7 @@ contract LoopingLeverage is
     constructor(IPoolAddressesProvider _addressProvider, address _swapRouter, address _quoter)
         FlashLoanSimpleReceiverBase(_addressProvider)
         LoopingLeverageSwaps(_swapRouter, _quoter)
+        LoopingLeverageFee(msg.sender, DataTypes.DEFAULT_FEE_BPS)
     {}
 
     /**
@@ -103,10 +106,15 @@ contract LoopingLeverage is
     ) external nonReentrant {
         // transfer from user to this contract
         IERC20(supplyToken).transferFrom(msg.sender, address(this), supplyAmount);
-        IERC20(supplyToken).approve(address(POOL), supplyAmount);
+
+        // take fee
+        uint256 feeAmount = _takeFee(supplyAmount + flashLoanAmount, supplyToken);
+
+        // supply the amount after fee
+        IERC20(supplyToken).approve(address(POOL), supplyAmount - feeAmount);
 
         // supply the initial amount on behalf of the user
-        POOL.supply(supplyToken, supplyAmount, msg.sender, 0);
+        POOL.supply(supplyToken, supplyAmount - feeAmount, msg.sender, 0);
 
         // create the params required for flash loan execution
         bytes memory params = _encodeLoopParams(supplyToken, borrowToken, flashLoanAmount, swapPathTokens, swapPathFees);
