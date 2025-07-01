@@ -47,8 +47,8 @@ abstract contract TestBase is Test {
         MTBILL_AMOUNT = 23 * 10 ** (MTBILL_DECIMALS - 2);
         USDC_AMOUNT = 1 * 10 ** USDC_DECIMALS;
         vm.createSelectFork("etherlink");
-        USER = 0x03adFaA573aC1a9b19D2b8F79a5aAFFb9c2A0532;
-        // vm.addr(0x123);
+        USER = vm.addr(0x123);
+        // 0x03adFaA573aC1a9b19D2b8F79a5aAFFb9c2A0532;
 
         vm.startPrank(LZ_BRIDGE);
         LZToken(USDC).mint(USER, 1000 * 10 ** USDC_DECIMALS);
