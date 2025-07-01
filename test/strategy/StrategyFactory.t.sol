@@ -16,24 +16,14 @@ contract StrategyFactoryTest is TestBase {
         super.setUp();
 
         factory = new SuperlendLoopingStrategyFactory();
-        loopingLeverage = new LoopingLeverage(
-            IPoolAddressesProvider(ADDRESSES_PROVIDER),
-            SWAP_ROUTER,
-            QUOTER_V2
-        );
+        loopingLeverage = new LoopingLeverage(IPoolAddressesProvider(ADDRESSES_PROVIDER), SWAP_ROUTER, QUOTER_V2);
         pool = IPoolAddressesProvider(ADDRESSES_PROVIDER).getPool();
     }
 
     function test_createStrategy() external {
         // create a strategy with wbtc/usdc with 0 emode
         factory.createStrategy(address(loopingLeverage), pool, WBTC, USDC, 0);
-        address strategy1 = factory.getUserStrategy(
-            address(this),
-            pool,
-            WBTC,
-            USDC,
-            0
-        );
+        address strategy1 = factory.getUserStrategy(address(this), pool, WBTC, USDC, 0);
         assert(strategy1 != address(0));
 
         // create a strategy with wbtc/usdc with 1 emode => expcted to revert
@@ -42,24 +32,12 @@ contract StrategyFactoryTest is TestBase {
 
         // create a strategy with mbasis/usdc with 0 emode
         factory.createStrategy(address(loopingLeverage), pool, MTBILL, USDC, 0);
-        address strategy2 = factory.getUserStrategy(
-            address(this),
-            pool,
-            MTBILL,
-            USDC,
-            0
-        );
+        address strategy2 = factory.getUserStrategy(address(this), pool, MTBILL, USDC, 0);
         assert(strategy2 != address(0));
 
         // create a strategy with mbasis/usdc with 1 emode
         factory.createStrategy(address(loopingLeverage), pool, MTBILL, USDC, 1);
-        address strategy3 = factory.getUserStrategy(
-            address(this),
-            pool,
-            MTBILL,
-            USDC,
-            1
-        );
+        address strategy3 = factory.getUserStrategy(address(this), pool, MTBILL, USDC, 1);
         assert(strategy3 != address(0));
 
         // create a strategy with mbasis/usdc with 2 emode => expect revert

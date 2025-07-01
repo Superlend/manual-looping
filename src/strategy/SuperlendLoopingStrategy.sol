@@ -24,16 +24,7 @@ contract SuperlendLoopingStrategy is Ownable, SuperlendLoopingStrategyStorage {
         address _debtAsset,
         address _loopingLeverage,
         uint8 _emode
-    )
-        Ownable(_owner)
-        SuperlendLoopingStrategyStorage(
-            _pool,
-            _yieldAsset,
-            _debtAsset,
-            _loopingLeverage,
-            _emode
-        )
-    {}
+    ) Ownable(_owner) SuperlendLoopingStrategyStorage(_pool, _yieldAsset, _debtAsset, _loopingLeverage, _emode) {}
 
     function setLoopingLeverage(address __loopingLeverage) external onlyOwner {
         _setLoopingLeverage(__loopingLeverage);
@@ -47,31 +38,16 @@ contract SuperlendLoopingStrategy is Ownable, SuperlendLoopingStrategyStorage {
         uint256 delegationAmount
     ) external onlyOwner {
         // transfer supply amount of yield token to this contract
-        IERC20(yieldAsset()).safeTransferFrom(
-            msg.sender,
-            address(this),
-            supplyAmount
-        );
+        IERC20(yieldAsset()).safeTransferFrom(msg.sender, address(this), supplyAmount);
 
         // do credit delegation to looping contract
-        ICreditDelegationToken(variableDebtToken()).approveDelegation(
-            loopingLeverage(),
-            delegationAmount
-        );
+        ICreditDelegationToken(variableDebtToken()).approveDelegation(loopingLeverage(), delegationAmount);
 
         // approve looping leverage to spend yield token
-        IERC20(yieldAsset()).safeIncreaseAllowance(
-            loopingLeverage(),
-            supplyAmount
-        );
+        IERC20(yieldAsset()).safeIncreaseAllowance(loopingLeverage(), supplyAmount);
 
         bool success = LoopingLeverage(loopingLeverage()).loop(
-            yieldAsset(),
-            debtAsset(),
-            supplyAmount,
-            flashLoanAmount,
-            swapPathTokens,
-            swapPathFees
+            yieldAsset(), debtAsset(), supplyAmount, flashLoanAmount, swapPathTokens, swapPathFees
         );
 
         require(success, "looping leverage loop failed");
@@ -87,28 +63,17 @@ contract SuperlendLoopingStrategy is Ownable, SuperlendLoopingStrategyStorage {
         uint256 withdrawAmount
     ) external onlyOwner {
         if (repayAmount > 0) {
-            IERC20(aToken()).safeIncreaseAllowance(
-                loopingLeverage(),
-                aTokenAmount
-            );
+            IERC20(aToken()).safeIncreaseAllowance(loopingLeverage(), aTokenAmount);
 
             bool success = LoopingLeverage(loopingLeverage()).unloop(
-                yieldAsset(),
-                debtAsset(),
-                repayAmount,
-                swapPathTokens,
-                swapPathFees
+                yieldAsset(), debtAsset(), repayAmount, swapPathTokens, swapPathFees
             );
 
             require(success, "looping leverage unloop failed");
         }
 
         // withdraw tokens from pool
-        withdrawAmount = IPool(pool()).withdraw(
-            yieldAsset(),
-            withdrawAmount,
-            msg.sender
-        );
+        withdrawAmount = IPool(pool()).withdraw(yieldAsset(), withdrawAmount, msg.sender);
 
         emit UnLoop(repayAmount, withdrawAmount);
     }

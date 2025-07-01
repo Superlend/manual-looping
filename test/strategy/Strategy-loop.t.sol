@@ -18,11 +18,7 @@ contract StrategyLoopTest is TestBase {
         super.setUp();
 
         factory = new SuperlendLoopingStrategyFactory();
-        loopingLeverage = new LoopingLeverage(
-            IPoolAddressesProvider(ADDRESSES_PROVIDER),
-            SWAP_ROUTER,
-            QUOTER_V2
-        );
+        loopingLeverage = new LoopingLeverage(IPoolAddressesProvider(ADDRESSES_PROVIDER), SWAP_ROUTER, QUOTER_V2);
         pool = IPoolAddressesProvider(ADDRESSES_PROVIDER).getPool();
     }
 
@@ -47,24 +43,14 @@ contract StrategyLoopTest is TestBase {
         IERC20(supplyToken).approve(address(strategy), supplyAmount);
 
         SuperlendLoopingStrategy(strategy).openPosition(
-            supplyAmount,
-            flashLoanAmount,
-            pathTokens,
-            pathFees,
-            type(uint256).max
+            supplyAmount, flashLoanAmount, pathTokens, pathFees, type(uint256).max
         );
 
         vm.stopPrank();
 
-        (uint256 supply, , , , , , , , ) = poolDataProvider.getUserReserveData(
-            supplyToken,
-            strategy
-        );
+        (uint256 supply,,,,,,,,) = poolDataProvider.getUserReserveData(supplyToken, strategy);
 
-        (, , uint256 borrow, , , , , , ) = poolDataProvider.getUserReserveData(
-            borrowToken,
-            strategy
-        );
+        (,, uint256 borrow,,,,,,) = poolDataProvider.getUserReserveData(borrowToken, strategy);
 
         assert(supply > 0);
         assert(borrow > 0);
@@ -73,24 +59,12 @@ contract StrategyLoopTest is TestBase {
         flashLoanAmount = supplyAmount;
 
         vm.startPrank(USER);
-        SuperlendLoopingStrategy(strategy).openPosition(
-            0,
-            flashLoanAmount,
-            pathTokens,
-            pathFees,
-            type(uint256).max
-        );
+        SuperlendLoopingStrategy(strategy).openPosition(0, flashLoanAmount, pathTokens, pathFees, type(uint256).max);
         vm.stopPrank();
 
-        (uint256 supply2, , , , , , , , ) = poolDataProvider.getUserReserveData(
-            supplyToken,
-            strategy
-        );
+        (uint256 supply2,,,,,,,,) = poolDataProvider.getUserReserveData(supplyToken, strategy);
 
-        (, , uint256 borrow2, , , , , , ) = poolDataProvider.getUserReserveData(
-            borrowToken,
-            strategy
-        );
+        (,, uint256 borrow2,,,,,,) = poolDataProvider.getUserReserveData(borrowToken, strategy);
 
         assert(supply2 > supply);
         assert(borrow2 > borrow);

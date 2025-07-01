@@ -38,68 +38,40 @@ contract SuperlendLoopingStrategyFactory is Ownable {
         address _debtAsset,
         uint8 _eMode
     ) external {
-        bytes32 strategyId = getStrategyId(
-            _pool,
-            _yieldAsset,
-            _debtAsset,
-            _eMode
-        );
+        bytes32 strategyId = getStrategyId(_pool, _yieldAsset, _debtAsset, _eMode);
 
-        require(
-            existingStrategies[msg.sender][strategyId] == address(0),
-            "strategy already exists"
-        );
+        require(existingStrategies[msg.sender][strategyId] == address(0), "strategy already exists");
 
-        SuperlendLoopingStrategy _stratAddress = new SuperlendLoopingStrategy(
-            msg.sender,
-            _pool,
-            _yieldAsset,
-            _debtAsset,
-            _loopingLeverage,
-            _eMode
-        );
+        SuperlendLoopingStrategy _stratAddress =
+            new SuperlendLoopingStrategy(msg.sender, _pool, _yieldAsset, _debtAsset, _loopingLeverage, _eMode);
         userStrategies[msg.sender].push(address(_stratAddress));
         existingStrategies[msg.sender][strategyId] = address(_stratAddress);
 
         emit StrategyDeployed(
-            msg.sender,
-            address(_stratAddress),
-            _loopingLeverage,
-            _pool,
-            _yieldAsset,
-            _debtAsset,
-            _eMode
+            msg.sender, address(_stratAddress), _loopingLeverage, _pool, _yieldAsset, _debtAsset, _eMode
         );
     }
 
     /// @notice combine the pool, yieldAsset, debtAsset addresses and eMode and hash them
-    function getStrategyId(
-        address pool,
-        address yieldAsset,
-        address debtAsset,
-        uint8 eMode
-    ) public pure returns (bytes32) {
+    function getStrategyId(address pool, address yieldAsset, address debtAsset, uint8 eMode)
+        public
+        pure
+        returns (bytes32)
+    {
         return keccak256(abi.encodePacked(pool, yieldAsset, debtAsset, eMode));
     }
 
     /// @notice get all users strategy addresses
-    function getUserStrategies(
-        address _user
-    ) external view returns (address[] memory) {
+    function getUserStrategies(address _user) external view returns (address[] memory) {
         return userStrategies[_user];
     }
 
     /// @notice get strategy address for certain pool & assets
-    function getUserStrategy(
-        address _user,
-        address _pool,
-        address _yieldAsset,
-        address _debtAsset,
-        uint8 _emode
-    ) external view returns (address) {
-        return
-            existingStrategies[_user][
-                getStrategyId(_pool, _yieldAsset, _debtAsset, _emode)
-            ];
+    function getUserStrategy(address _user, address _pool, address _yieldAsset, address _debtAsset, uint8 _emode)
+        external
+        view
+        returns (address)
+    {
+        return existingStrategies[_user][getStrategyId(_pool, _yieldAsset, _debtAsset, _emode)];
     }
 }

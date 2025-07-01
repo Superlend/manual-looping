@@ -16,11 +16,7 @@ contract LoopingLeverageTest is TestBase {
     function setUp() public override {
         super.setUp();
 
-        loopingLeverage = new LoopingLeverage(
-            IPoolAddressesProvider(ADDRESSES_PROVIDER),
-            SWAP_ROUTER,
-            QUOTER_V2
-        );
+        loopingLeverage = new LoopingLeverage(IPoolAddressesProvider(ADDRESSES_PROVIDER), SWAP_ROUTER, QUOTER_V2);
     }
 
     function test_loopSingleTokenHop() public {
@@ -44,31 +40,15 @@ contract LoopingLeverageTest is TestBase {
 
         vm.startPrank(USER);
         IERC20(supplyToken).approve(address(loopingLeverage), supplyAmount);
-        ICreditDelegationToken(DEBT_TOKEN).approveDelegation(
-            address(loopingLeverage),
-            type(uint256).max
-        );
+        ICreditDelegationToken(DEBT_TOKEN).approveDelegation(address(loopingLeverage), type(uint256).max);
 
-        loopingLeverage.loop(
-            supplyToken,
-            borrowToken,
-            supplyAmount,
-            flashLoanAmount,
-            pathTokens,
-            pathFees
-        );
+        loopingLeverage.loop(supplyToken, borrowToken, supplyAmount, flashLoanAmount, pathTokens, pathFees);
 
         vm.stopPrank();
 
-        (uint256 supply, , , , , , , , ) = poolDataProvider.getUserReserveData(
-            supplyToken,
-            USER
-        );
+        (uint256 supply,,,,,,,,) = poolDataProvider.getUserReserveData(supplyToken, USER);
 
-        (, , uint256 borrow, , , , , , ) = poolDataProvider.getUserReserveData(
-            borrowToken,
-            USER
-        );
+        (,, uint256 borrow,,,,,,) = poolDataProvider.getUserReserveData(borrowToken, USER);
 
         assertTrue(supply > 0);
         assertTrue(borrow > 0);
@@ -99,39 +79,22 @@ contract LoopingLeverageTest is TestBase {
 
         vm.startPrank(USER);
         IERC20(supplyToken).approve(address(loopingLeverage), supplyAmount);
-        ICreditDelegationToken(DEBT_TOKEN).approveDelegation(
-            address(loopingLeverage),
-            type(uint256).max
-        );
+        ICreditDelegationToken(DEBT_TOKEN).approveDelegation(address(loopingLeverage), type(uint256).max);
 
-        loopingLeverage.loop(
-            supplyToken,
-            borrowToken,
-            supplyAmount,
-            flashLoanAmount,
-            pathTokens,
-            pathFees
-        );
+        loopingLeverage.loop(supplyToken, borrowToken, supplyAmount, flashLoanAmount, pathTokens, pathFees);
 
         vm.stopPrank();
 
-        (uint256 supply, , , , , , , , ) = poolDataProvider.getUserReserveData(
-            supplyToken,
-            USER
-        );
+        (uint256 supply,,,,,,,,) = poolDataProvider.getUserReserveData(supplyToken, USER);
 
-        (, , uint256 borrow, , , , , , ) = poolDataProvider.getUserReserveData(
-            borrowToken,
-            USER
-        );
+        (,, uint256 borrow,,,,,,) = poolDataProvider.getUserReserveData(borrowToken, USER);
 
         assertTrue(supply > 0);
         assertTrue(borrow > 0);
     }
 
     function _updateBorrowCap(address token) internal {
-        address poolConfigurator = IPoolAddressesProvider(ADDRESSES_PROVIDER)
-            .getPoolConfigurator();
+        address poolConfigurator = IPoolAddressesProvider(ADDRESSES_PROVIDER).getPoolConfigurator();
 
         vm.prank(ETHERLINK_MARKET_ADMIN);
 

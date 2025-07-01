@@ -19,22 +19,13 @@ abstract contract SuperlendLoopingStrategyStorage {
     address private immutable _aToken;
 
     /// @notice event emitted when looping leverage is set
-    event LoopingLeverageSet(
-        address oldLoopingLeverage,
-        address newLoopingLeverage
-    );
+    event LoopingLeverageSet(address oldLoopingLeverage, address newLoopingLeverage);
 
     /// @notice event emitted when emode is set
     event EmodeSet(uint8 oldEmode, uint8 newEmode);
 
     /// @notice constructor
-    constructor(
-        address __pool,
-        address __yieldAsset,
-        address __debtAsset,
-        address __loopingLeverage,
-        uint8 __emode
-    ) {
+    constructor(address __pool, address __yieldAsset, address __debtAsset, address __loopingLeverage, uint8 __emode) {
         _pool = __pool;
         _yieldAsset = __yieldAsset;
         _debtAsset = __debtAsset;
@@ -42,12 +33,10 @@ abstract contract SuperlendLoopingStrategyStorage {
         _setLoopingLeverage(__loopingLeverage);
         _setEmode(__emode);
 
-        DataTypes.ReserveData memory debtReserveData = IPool(__pool)
-            .getReserveData(__debtAsset);
+        DataTypes.ReserveData memory debtReserveData = IPool(__pool).getReserveData(__debtAsset);
         _variableDebtToken = debtReserveData.variableDebtTokenAddress;
 
-        DataTypes.ReserveData memory yieldReserveData = IPool(__pool)
-            .getReserveData(__yieldAsset);
+        DataTypes.ReserveData memory yieldReserveData = IPool(__pool).getReserveData(__yieldAsset);
         _aToken = yieldReserveData.aTokenAddress;
     }
 
@@ -65,16 +54,9 @@ abstract contract SuperlendLoopingStrategyStorage {
     function _setEmode(uint8 __emode) internal {
         if (__emode == 0) return;
 
-        uint256 yieldEmode = ReserveConfiguration.getEModeCategory(
-            IPool(_pool).getConfiguration(_yieldAsset)
-        );
-        uint256 debtEmode = ReserveConfiguration.getEModeCategory(
-            IPool(_pool).getConfiguration(_debtAsset)
-        );
-        require(
-            yieldEmode == debtEmode && __emode == yieldEmode,
-            "inconsistent emode category"
-        );
+        uint256 yieldEmode = ReserveConfiguration.getEModeCategory(IPool(_pool).getConfiguration(_yieldAsset));
+        uint256 debtEmode = ReserveConfiguration.getEModeCategory(IPool(_pool).getConfiguration(_debtAsset));
+        require(yieldEmode == debtEmode && __emode == yieldEmode, "inconsistent emode category");
 
         IPool(_pool).setUserEMode(__emode);
 

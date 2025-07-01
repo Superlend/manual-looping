@@ -18,11 +18,7 @@ contract StrategyUnloopTest is TestBase {
         super.setUp();
 
         factory = new SuperlendLoopingStrategyFactory();
-        loopingLeverage = new LoopingLeverage(
-            IPoolAddressesProvider(ADDRESSES_PROVIDER),
-            SWAP_ROUTER,
-            QUOTER_V2
-        );
+        loopingLeverage = new LoopingLeverage(IPoolAddressesProvider(ADDRESSES_PROVIDER), SWAP_ROUTER, QUOTER_V2);
         pool = IPoolAddressesProvider(ADDRESSES_PROVIDER).getPool();
     }
 
@@ -40,19 +36,12 @@ contract StrategyUnloopTest is TestBase {
         vm.startPrank(USER);
 
         SuperlendLoopingStrategy(strategy).closePosition(
-            repayAmount,
-            swapPathTokens,
-            swapPathFees,
-            type(uint256).max,
-            10 * 10 ** 18
+            repayAmount, swapPathTokens, swapPathFees, type(uint256).max, 10 * 10 ** 18
         );
 
         vm.stopPrank();
 
-        (, , uint256 borrow, , , , , , ) = poolDataProvider.getUserReserveData(
-            USDC,
-            strategy
-        );
+        (,, uint256 borrow,,,,,,) = poolDataProvider.getUserReserveData(USDC, strategy);
         uint256 finalYieldTokenBalance = IERC20(MTBILL).balanceOf(USER);
 
         assert(borrow == 0);
@@ -61,19 +50,10 @@ contract StrategyUnloopTest is TestBase {
         // test withdaw all tokens ?
         vm.startPrank(USER);
 
-        SuperlendLoopingStrategy(strategy).closePosition(
-            0,
-            swapPathTokens,
-            swapPathFees,
-            0,
-            type(uint256).max
-        );
+        SuperlendLoopingStrategy(strategy).closePosition(0, swapPathTokens, swapPathFees, 0, type(uint256).max);
 
         vm.stopPrank();
-        (uint256 supply, , , , , , , , ) = poolDataProvider.getUserReserveData(
-            MTBILL,
-            strategy
-        );
+        (uint256 supply,,,,,,,,) = poolDataProvider.getUserReserveData(MTBILL, strategy);
         uint256 finalYieldTokenBalanceAll = IERC20(MTBILL).balanceOf(USER);
         assert(supply == 0);
 
@@ -92,23 +72,13 @@ contract StrategyUnloopTest is TestBase {
         vm.startPrank(USER);
 
         SuperlendLoopingStrategy(strategy).closePosition(
-            repayAmount,
-            swapPathTokens,
-            swapPathFees,
-            type(uint256).max,
-            type(uint256).max
+            repayAmount, swapPathTokens, swapPathFees, type(uint256).max, type(uint256).max
         );
 
         vm.stopPrank();
 
-        (uint256 supply, , , , , , , , ) = poolDataProvider.getUserReserveData(
-            MTBILL,
-            strategy
-        );
-        (, , uint256 borrow, , , , , , ) = poolDataProvider.getUserReserveData(
-            USDC,
-            strategy
-        );
+        (uint256 supply,,,,,,,,) = poolDataProvider.getUserReserveData(MTBILL, strategy);
+        (,, uint256 borrow,,,,,,) = poolDataProvider.getUserReserveData(USDC, strategy);
 
         assert(supply == 0);
         assert(borrow == 0);
@@ -135,19 +105,12 @@ contract StrategyUnloopTest is TestBase {
         IERC20(supplyToken).approve(address(strategy), supplyAmount);
 
         SuperlendLoopingStrategy(strategy).openPosition(
-            supplyAmount,
-            flashLoanAmount,
-            pathTokens,
-            pathFees,
-            type(uint256).max
+            supplyAmount, flashLoanAmount, pathTokens, pathFees, type(uint256).max
         );
 
         vm.stopPrank();
 
-        (, , uint256 borrow, , , , , , ) = poolDataProvider.getUserReserveData(
-            borrowToken,
-            strategy
-        );
+        (,, uint256 borrow,,,,,,) = poolDataProvider.getUserReserveData(borrowToken, strategy);
 
         return (strategy, borrow);
     }
