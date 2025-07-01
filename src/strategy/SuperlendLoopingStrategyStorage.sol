@@ -29,7 +29,6 @@ abstract contract SuperlendLoopingStrategyStorage {
         _pool = __pool;
         _yieldAsset = __yieldAsset;
         _debtAsset = __debtAsset;
-        _emode = __emode;
         _setLoopingLeverage(__loopingLeverage);
         _setEmode(__emode);
 
