@@ -35,13 +35,9 @@ abstract contract LoopingLeverageSwaps {
      * @param amount The desired output amount
      * @return The required input amount
      */
-    function _calculateAmountToBorrow(
-        address tokenIn,
-        bytes memory path,
-        uint256 amount
-    ) internal returns (uint256) {
+    function _calculateAmountToBorrow(address tokenIn, bytes memory path, uint256 amount) internal returns (uint256) {
         _approveQuoter(tokenIn, type(uint256).max);
-        (uint256 amountIn, , , ) = quoter.quoteExactOutput(path, amount);
+        (uint256 amountIn,,,) = quoter.quoteExactOutput(path, amount);
 
         return amountIn;
     }
@@ -54,22 +50,19 @@ abstract contract LoopingLeverageSwaps {
      * @param amount The desired output amount
      * @return The required input amount
      */
-    function _calculateAmountToBorrowSingle(
-        address tokenIn,
-        address tokenOut,
-        uint24 poolFee,
-        uint256 amount
-    ) internal returns (uint256) {
-        IQuoterV2.QuoteExactOutputSingleParams memory quoteParams = IQuoterV2
-            .QuoteExactOutputSingleParams({
-                tokenIn: tokenIn,
-                tokenOut: tokenOut,
-                amount: amount,
-                fee: poolFee,
-                sqrtPriceLimitX96: 0
-            });
+    function _calculateAmountToBorrowSingle(address tokenIn, address tokenOut, uint24 poolFee, uint256 amount)
+        internal
+        returns (uint256)
+    {
+        IQuoterV2.QuoteExactOutputSingleParams memory quoteParams = IQuoterV2.QuoteExactOutputSingleParams({
+            tokenIn: tokenIn,
+            tokenOut: tokenOut,
+            amount: amount,
+            fee: poolFee,
+            sqrtPriceLimitX96: 0
+        });
 
-        (uint256 amountIn, , , ) = quoter.quoteExactOutputSingle(quoteParams);
+        (uint256 amountIn,,,) = quoter.quoteExactOutputSingle(quoteParams);
 
         return amountIn;
     }
@@ -81,18 +74,13 @@ abstract contract LoopingLeverageSwaps {
      * @param amountOut The desired output amount
      * @return The actual input amount used
      */
-    function _swapExactOutput(
-        bytes memory path,
-        uint256 amountIn,
-        uint256 amountOut
-    ) internal returns (uint256) {
-        IV3SwapRouter.ExactOutputParams memory params = IV3SwapRouter
-            .ExactOutputParams({
-                path: path,
-                recipient: address(this),
-                amountOut: amountOut,
-                amountInMaximum: amountIn
-            });
+    function _swapExactOutput(bytes memory path, uint256 amountIn, uint256 amountOut) internal returns (uint256) {
+        IV3SwapRouter.ExactOutputParams memory params = IV3SwapRouter.ExactOutputParams({
+            path: path,
+            recipient: address(this),
+            amountOut: amountOut,
+            amountInMaximum: amountIn
+        });
 
         return smartRouter.exactOutput(params);
     }
@@ -113,16 +101,15 @@ abstract contract LoopingLeverageSwaps {
         uint256 amountIn,
         uint256 amountOut
     ) internal returns (uint256) {
-        IV3SwapRouter.ExactOutputSingleParams memory params = IV3SwapRouter
-            .ExactOutputSingleParams({
-                tokenIn: tokenIn,
-                tokenOut: tokenOut,
-                fee: poolFee,
-                recipient: address(this),
-                amountOut: amountOut,
-                amountInMaximum: amountIn,
-                sqrtPriceLimitX96: 0
-            });
+        IV3SwapRouter.ExactOutputSingleParams memory params = IV3SwapRouter.ExactOutputSingleParams({
+            tokenIn: tokenIn,
+            tokenOut: tokenOut,
+            fee: poolFee,
+            recipient: address(this),
+            amountOut: amountOut,
+            amountInMaximum: amountIn,
+            sqrtPriceLimitX96: 0
+        });
 
         return smartRouter.exactOutputSingle(params);
     }
@@ -135,25 +122,17 @@ abstract contract LoopingLeverageSwaps {
      * @param tokenIn The input token address
      * @return The encoded swap path
      */
-    function _getPath(
-        address tokenOut,
-        address[] memory swapPathTokens,
-        uint24[] memory swapPathFees,
-        address tokenIn
-    ) internal pure returns (bytes memory) {
-        require(
-            swapPathFees.length == swapPathTokens.length + 1,
-            "LoopingLeverageSwaps: Invalid path"
-        );
+    function _getPath(address tokenOut, address[] memory swapPathTokens, uint24[] memory swapPathFees, address tokenIn)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        require(swapPathFees.length == swapPathTokens.length + 1, "LoopingLeverageSwaps: Invalid path");
 
         bytes memory path = abi.encodePacked(tokenOut, swapPathFees[0]);
         uint256 len = swapPathTokens.length;
-        for (uint256 i; i < len; ) {
-            path = abi.encodePacked(
-                path,
-                swapPathTokens[i],
-                swapPathFees[i + 1]
-            );
+        for (uint256 i; i < len;) {
+            path = abi.encodePacked(path, swapPathTokens[i], swapPathFees[i + 1]);
             unchecked {
                 ++i;
             }
