@@ -26,11 +26,7 @@ contract DeployLoopingLeverage is Script {
     function run() public {
         vm.startBroadcast(deployerPvtKey);
 
-        loopingLeverage = new LoopingLeverage(
-            IPoolAddressesProvider(ADDRESSES_PROVIDER),
-            SWAP_ROUTER,
-            QUOTER_V2
-        );
+        loopingLeverage = new LoopingLeverage(IPoolAddressesProvider(ADDRESSES_PROVIDER), SWAP_ROUTER, QUOTER_V2);
         loopingLeverage.setTreasury(TREASURY);
 
         loopingLeverage.transferOwnership(admin);

@@ -20,6 +20,7 @@ library DataTypes {
      * @notice Parameters required for a loop operation
      * @param supplyToken The token to be supplied to the lending pool
      * @param borrowToken The token to be borrowed from the lending pool
+     * @param supplyAmount The amount to be supplied to the lending pool
      * @param flashLoanAmount The amount to be flash loaned
      * @param swapPathTokens The tokens in the swap path (excluding start and end tokens)
      * @param swapPathFees The pool fees for each swap in the path
@@ -28,6 +29,7 @@ library DataTypes {
     struct LoopParams {
         address supplyToken;
         address borrowToken;
+        uint256 supplyAmount;
         uint256 flashLoanAmount;
         address[] swapPathTokens;
         uint24[] swapPathFees;
