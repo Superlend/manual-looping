@@ -68,5 +68,10 @@ contract StrategyLoopTest is TestBase {
 
         assert(supply2 > supply);
         assert(borrow2 > borrow);
+
+        vm.startPrank(USER);
+        IERC20(supplyToken).approve(address(strategy), supplyAmount);
+        SuperlendLoopingStrategy(strategy).openPosition(100_000, 0, pathTokens, pathFees, type(uint256).max);
+        vm.stopPrank();
     }
 }

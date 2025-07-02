@@ -112,12 +112,20 @@ contract LoopingLeverage is
         // transfer from user to this contract
         IERC20(supplyToken).safeTransferFrom(msg.sender, address(this), supplyAmount);
 
-        // create the params required for flash loan execution
-        bytes memory params =
-            _encodeLoopParams(supplyToken, borrowToken, supplyAmount, flashLoanAmount, swapPathTokens, swapPathFees);
+        if (flashLoanAmount > 0) {
+            // create the params required for flash loan execution
+            bytes memory params =
+                _encodeLoopParams(supplyToken, borrowToken, supplyAmount, flashLoanAmount, swapPathTokens, swapPathFees);
 
-        // take a flash loan
-        POOL.flashLoanSimple(address(this), address(supplyToken), flashLoanAmount, params, 0);
+            // take a flash loan
+            POOL.flashLoanSimple(address(this), address(supplyToken), flashLoanAmount, params, 0);
+        } else {
+            // approve the amount
+            IERC20(supplyToken).safeIncreaseAllowance(address(POOL), supplyAmount);
+
+            // supply the amount on behalf of the user
+            POOL.supply(supplyToken, supplyAmount, msg.sender, 0);
+        }
 
         return true;
     }

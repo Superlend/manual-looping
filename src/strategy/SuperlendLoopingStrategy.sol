@@ -37,14 +37,18 @@ contract SuperlendLoopingStrategy is Ownable, SuperlendLoopingStrategyStorage {
         uint24[] memory swapPathFees,
         uint256 delegationAmount
     ) external onlyOwner {
-        // transfer supply amount of yield token to this contract
-        IERC20(yieldAsset()).safeTransferFrom(msg.sender, address(this), supplyAmount);
+        if (supplyAmount > 0) {
+            // transfer supply amount of yield token to this contract
+            IERC20(yieldAsset()).safeTransferFrom(msg.sender, address(this), supplyAmount);
+
+            // approve looping leverage to spend yield token
+            IERC20(yieldAsset()).safeIncreaseAllowance(loopingLeverage(), supplyAmount);
+        }
 
         // do credit delegation to looping contract
-        ICreditDelegationToken(variableDebtToken()).approveDelegation(loopingLeverage(), delegationAmount);
-
-        // approve looping leverage to spend yield token
-        IERC20(yieldAsset()).safeIncreaseAllowance(loopingLeverage(), supplyAmount);
+        if (delegationAmount > 0) {
+            ICreditDelegationToken(variableDebtToken()).approveDelegation(loopingLeverage(), delegationAmount);
+        }
 
         bool success = LoopingLeverage(loopingLeverage()).loop(
             yieldAsset(), debtAsset(), supplyAmount, flashLoanAmount, swapPathTokens, swapPathFees
