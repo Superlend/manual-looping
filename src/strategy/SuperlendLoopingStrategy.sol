@@ -81,4 +81,16 @@ contract SuperlendLoopingStrategy is Ownable, SuperlendLoopingStrategyStorage {
 
         emit UnLoop(repayAmount, withdrawAmount);
     }
+
+    function skim(address[] memory tokens) external {
+        uint256 len = tokens.length;
+        for (uint256 i; i < len;) {
+            uint256 amount = IERC20(tokens[i]).balanceOf(address(this));
+            IERC20(tokens[i]).safeTransfer(owner(), amount);
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
 }
