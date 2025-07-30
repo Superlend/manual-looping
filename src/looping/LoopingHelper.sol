@@ -44,10 +44,8 @@ contract LoopingHelper is FlashLoanSimpleReceiverBase, ReentrancyGuard, LoopingH
      * @notice Flash loan callback function called by Aave V3 pool
      * @dev This function is called by the Aave pool after a flash loan is executed.
      *      It decodes the operation type and executes either a loop or unloop operation.
-     * @param asset The address of the flash loaned asset
      * @param amount The amount of the flash loan
      * @param premium The flash loan premium (fee)
-     * @param initiator The address that initiated the flash loan
      * @param params The encoded parameters containing operation details
      * @return True if the operation was successful
      */
