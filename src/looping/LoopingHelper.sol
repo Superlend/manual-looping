@@ -9,8 +9,11 @@ import {IPoolAddressesProvider} from "aave-v3-core/contracts/interfaces/IPoolAdd
 import {LoopingHelperSwaps} from "./LoopingHelperSwaps.sol";
 import {LoopingHelperEncoding} from "./LoopingHelperEncoding.sol";
 import {DataTypes, ExecuteSwapParams} from "./DataTypes.sol";
+import {console} from "forge-std/console.sol";
 
 contract LoopingHelper is FlashLoanSimpleReceiverBase, ReentrancyGuard, LoopingHelperSwaps, LoopingHelperEncoding {
+    uint256 public constant INTEREST_RATE_MODE = 2;
+
     using SafeERC20 for IERC20;
 
     constructor(IPoolAddressesProvider _addressProvider, address _universalDexModule)
@@ -71,7 +74,7 @@ contract LoopingHelper is FlashLoanSimpleReceiverBase, ReentrancyGuard, LoopingH
 
     function _executeLoop(DataTypes.LoopParams memory loopParams, uint256 amount, uint256 premium) internal {
         uint256 supplyAmount = loopParams.supplyAmount + amount;
-
+        uint256 flashloanRepayAmount = loopParams.flashLoanAmount + premium;
         // approve the amount after fee
         IERC20(loopParams.supplyToken).safeIncreaseAllowance(address(POOL), supplyAmount);
 
@@ -79,29 +82,31 @@ contract LoopingHelper is FlashLoanSimpleReceiverBase, ReentrancyGuard, LoopingH
         POOL.supply(loopParams.supplyToken, supplyAmount, loopParams.user, 0);
 
         // borrow the amount
-        POOL.borrow(loopParams.borrowToken, loopParams.borrowAmount, 2, 0, loopParams.user);
+        POOL.borrow(loopParams.borrowToken, loopParams.borrowAmount, INTEREST_RATE_MODE, 0, loopParams.user);
 
         // handle approve and swap
         _executeSwap(loopParams.borrowToken, loopParams.borrowAmount, loopParams.swapParams);
 
-        uint256 leftOverAmount = IERC20(loopParams.supplyToken).balanceOf(address(this)) - loopParams.flashLoanAmount;
-        if (leftOverAmount > 0) {
-            IERC20(loopParams.supplyToken).safeIncreaseAllowance(address(POOL), leftOverAmount);
-            POOL.supply(loopParams.supplyToken, leftOverAmount, loopParams.user, 0);
-        }
+        // handle left over amounts
+        uint256 leftOverSupplyAmount = IERC20(loopParams.supplyToken).balanceOf(address(this)) - flashloanRepayAmount;
+        uint256 leftOverBorrowAmount = IERC20(loopParams.borrowToken).balanceOf(address(this));
+        _handleLeftOverAmounts(
+            loopParams.supplyToken, loopParams.borrowToken, leftOverSupplyAmount, leftOverBorrowAmount, loopParams.user
+        );
 
         // repay the flash loan
-        IERC20(loopParams.supplyToken).safeIncreaseAllowance(address(POOL), loopParams.flashLoanAmount + premium);
+        IERC20(loopParams.supplyToken).safeIncreaseAllowance(address(POOL), flashloanRepayAmount);
     }
 
     function _executeUnloop(DataTypes.UnloopParams memory unloopParams, uint256 amount, uint256 premium) internal {
+        uint256 flashloanRepayAmount = amount + premium;
+
         // repay borrow amount on behalf of the user
         IERC20(unloopParams.borrowToken).safeIncreaseAllowance(address(POOL), unloopParams.repayAmount);
-        POOL.repay(unloopParams.borrowToken, unloopParams.repayAmount, 2, unloopParams.user);
+        POOL.repay(unloopParams.borrowToken, unloopParams.repayAmount, INTEREST_RATE_MODE, unloopParams.user);
 
         // transfer aTokens to the contract
         address aToken = POOL.getReserveData(unloopParams.supplyToken).aTokenAddress;
-
         IERC20(aToken).safeTransferFrom(unloopParams.user, address(this), unloopParams.withdrawAmount);
 
         // withdraw the aTokens
@@ -109,14 +114,36 @@ contract LoopingHelper is FlashLoanSimpleReceiverBase, ReentrancyGuard, LoopingH
         // handle approve and swap
         _executeSwap(unloopParams.supplyToken, unloopParams.withdrawAmount, unloopParams.swapParams);
 
-        // repay the flash loan
-        uint256 leftOverAmount = IERC20(unloopParams.supplyToken).balanceOf(address(this));
-        if (leftOverAmount > 0) {
-            IERC20(unloopParams.supplyToken).safeIncreaseAllowance(address(POOL), leftOverAmount);
-            POOL.supply(unloopParams.supplyToken, leftOverAmount, unloopParams.user, 0);
-        }
+        // handle left over amounts
+        uint256 leftOverSupplyAmount = IERC20(unloopParams.supplyToken).balanceOf(address(this));
+        uint256 leftOverBorrowAmount = IERC20(unloopParams.borrowToken).balanceOf(address(this)) - flashloanRepayAmount;
+        _handleLeftOverAmounts(
+            unloopParams.supplyToken,
+            unloopParams.borrowToken,
+            leftOverSupplyAmount,
+            leftOverBorrowAmount,
+            unloopParams.user
+        );
 
         // repay the flash loan
-        IERC20(unloopParams.borrowToken).safeIncreaseAllowance(address(POOL), amount + premium);
+        IERC20(unloopParams.borrowToken).safeIncreaseAllowance(address(POOL), flashloanRepayAmount);
+    }
+
+    function _handleLeftOverAmounts(
+        address supplyToken,
+        address borrowToken,
+        uint256 leftOverSupplyAmount,
+        uint256 leftOverBorrowAmount,
+        address user
+    ) internal {
+        if (leftOverSupplyAmount > 0) {
+            IERC20(supplyToken).safeIncreaseAllowance(address(POOL), leftOverSupplyAmount);
+            POOL.supply(supplyToken, leftOverSupplyAmount, user, 0);
+        }
+
+        if (leftOverBorrowAmount > 0) {
+            IERC20(borrowToken).safeIncreaseAllowance(address(POOL), leftOverBorrowAmount);
+            POOL.repay(borrowToken, leftOverBorrowAmount, INTEREST_RATE_MODE, user);
+        }
     }
 }

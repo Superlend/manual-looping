@@ -6,8 +6,8 @@ import {DataTypes} from "aave-v3-core/contracts/protocol/libraries/types/DataTyp
 import {ReserveConfiguration} from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
 
 abstract contract SuperlendLoopingStrategyStorage {
-    /// @notice looping leverage contract
-    address private _loopingLeverage;
+    /// @notice looping helper contract
+    address private _loopingHelper;
     /// @notice emode category id
     uint8 private _emode;
 
@@ -18,18 +18,18 @@ abstract contract SuperlendLoopingStrategyStorage {
     address private immutable _variableDebtToken;
     address private immutable _aToken;
 
-    /// @notice event emitted when looping leverage is set
-    event LoopingLeverageSet(address oldLoopingLeverage, address newLoopingLeverage);
+    /// @notice event emitted when looping helper is set
+    event LoopingHelperSet(address oldLoopingHelper, address newLoopingHelper);
 
     /// @notice event emitted when emode is set
     event EmodeSet(uint8 oldEmode, uint8 newEmode);
 
     /// @notice constructor
-    constructor(address __pool, address __yieldAsset, address __debtAsset, address __loopingLeverage, uint8 __emode) {
+    constructor(address __pool, address __yieldAsset, address __debtAsset, address __loopingHelper, uint8 __emode) {
         _pool = __pool;
         _yieldAsset = __yieldAsset;
         _debtAsset = __debtAsset;
-        _setLoopingLeverage(__loopingLeverage);
+        _setLoopingHelper(__loopingHelper);
         _setEmode(__emode);
 
         DataTypes.ReserveData memory debtReserveData = IPool(__pool).getReserveData(__debtAsset);
@@ -40,12 +40,12 @@ abstract contract SuperlendLoopingStrategyStorage {
     }
 
     /// @notice sets the looping leverage contract
-    /// @param __loopingLeverage the address of the looping leverage contract
-    function _setLoopingLeverage(address __loopingLeverage) internal {
-        require(__loopingLeverage != address(0), "loopingLeverage cannot be 0");
+    /// @param __loopingHelper the address of the looping helper contract
+    function _setLoopingHelper(address __loopingHelper) internal {
+        require(__loopingHelper != address(0), "loopingHelper cannot be 0");
 
-        emit LoopingLeverageSet(_loopingLeverage, __loopingLeverage);
-        _loopingLeverage = __loopingLeverage;
+        emit LoopingHelperSet(_loopingHelper, __loopingHelper);
+        _loopingHelper = __loopingHelper;
     }
 
     /// @notice sets the emode category id
@@ -63,8 +63,8 @@ abstract contract SuperlendLoopingStrategyStorage {
         _emode = __emode;
     }
 
-    function loopingLeverage() public view returns (address) {
-        return _loopingLeverage;
+    function loopingHelper() public view returns (address) {
+        return _loopingHelper;
     }
 
     function pool() public view returns (address) {

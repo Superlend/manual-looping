@@ -14,6 +14,8 @@ abstract contract TestBase is Test {
     address LZ_BRIDGE = 0x1f8E735f424B7A49A885571A2fA104E8C13C26c7;
     address ETHERLINK_MARKET_ADMIN = 0x669bd328f6C494949Ed9fB2dc8021557A6Dd005f;
 
+    address DEX_MODULE = 0x625DDA590E92B5F4DAc40CfC12941B11b936c828;
+
     address WXTZ = 0xc9B53AB2679f573e480d01e0f49e2B5CFB7a3EAb;
     address ETH = 0xfc24f770F94edBca6D6f885E12d4317320BcB401;
     address USDC = 0x796Ea11Fa2dD751eD01b53C372fFDB4AAa8f00F9;
@@ -43,7 +45,7 @@ abstract contract TestBase is Test {
     IPoolDataProvider poolDataProvider;
 
     function setUp() public virtual {
-        ETH_AMOUNT = 0.0614915 ether; // 100 USD worth of ETH
+        ETH_AMOUNT = 0.01 ether; // 100 USD worth of ETH
         MTBILL_AMOUNT = 23 * 10 ** (MTBILL_DECIMALS - 2);
         USDC_AMOUNT = 1 * 10 ** USDC_DECIMALS;
         vm.createSelectFork("etherlink");

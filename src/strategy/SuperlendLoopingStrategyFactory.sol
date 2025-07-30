@@ -16,7 +16,7 @@ contract SuperlendLoopingStrategyFactory is Ownable {
     event StrategyDeployed(
         address indexed owner,
         address indexed strategy,
-        address loopingLeverage,
+        address loopingHelper,
         address pool,
         address yieldAsset,
         address debtAsset,
@@ -26,13 +26,13 @@ contract SuperlendLoopingStrategyFactory is Ownable {
     constructor() Ownable(msg.sender) {}
 
     /// @notice create a new strategy contract for the user
-    /// @param _loopingLeverage address of the looping contract
+    /// @param _loopingHelper address of the looping helper contract
     /// @param _pool address of the lending pool to supply/borrow from
     /// @param _yieldAsset address of the asset to be supplied
     /// @param _debtAsset address of the asset to be borrowed
     /// @param _eMode Emode of the asset pair
     function createStrategy(
-        address _loopingLeverage,
+        address _loopingHelper,
         address _pool,
         address _yieldAsset,
         address _debtAsset,
@@ -43,12 +43,12 @@ contract SuperlendLoopingStrategyFactory is Ownable {
         require(existingStrategies[msg.sender][strategyId] == address(0), "strategy already exists");
 
         SuperlendLoopingStrategy _stratAddress =
-            new SuperlendLoopingStrategy(msg.sender, _pool, _yieldAsset, _debtAsset, _loopingLeverage, _eMode);
+            new SuperlendLoopingStrategy(msg.sender, _pool, _yieldAsset, _debtAsset, _loopingHelper, _eMode);
         userStrategies[msg.sender].push(address(_stratAddress));
         existingStrategies[msg.sender][strategyId] = address(_stratAddress);
 
         emit StrategyDeployed(
-            msg.sender, address(_stratAddress), _loopingLeverage, _pool, _yieldAsset, _debtAsset, _eMode
+            msg.sender, address(_stratAddress), _loopingHelper, _pool, _yieldAsset, _debtAsset, _eMode
         );
     }
 

@@ -17,7 +17,6 @@ library DataTypes {
         address supplyToken;
         address borrowToken;
         uint256 repayAmount;
-        address user;
         uint256 withdrawAmount;
         ExecuteSwapParams swapParams;
     }
