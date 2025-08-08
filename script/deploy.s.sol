@@ -15,32 +15,32 @@ import {IPoolAddressesProvider} from "aave-v3-core/contracts/interfaces/IPoolAdd
  */
 contract DeployLoopingLeverage is Script {
     // ============ State Variables ============
-    
+
     /// @notice The deployer's private key
     uint256 private deployerPrivateKey;
-    
+
     /// @notice The deployed LoopingHelper contract
     LoopingHelper public loopingHelper;
-    
+
     /// @notice The deployed SuperlendLoopingStrategyFactory contract
     SuperlendLoopingStrategyFactory public factory;
-    
+
     /// @notice The deployer/admin address
     address public admin;
-    
+
     // ============ Constants ============
-    
+
     /// @notice Treasury address (currently unused but kept for future use)
     address private constant TREASURY = 0x669bd328f6C494949Ed9fB2dc8021557A6Dd005f;
-    
+
     /// @notice Aave V3 Pool Addresses Provider on Etherlink
     address private constant ADDRESSES_PROVIDER = 0x5ccF60c7E10547c5389E9cBFf543E5D0Db9F4feC;
-    
+
     /// @notice Universal DEX Module address
     address private constant DEX_MODULE = 0x625DDA590E92B5F4DAc40CfC12941B11b936c828;
 
     // ============ Setup Function ============
-    
+
     /**
      * @notice Sets up the deployment environment
      * @dev Creates a fork of the Etherlink network and initializes the deployer
@@ -51,15 +51,15 @@ contract DeployLoopingLeverage is Script {
 
         // Load the deployer's private key from environment variables
         deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        
+
         // Derive the admin address from the private key
         admin = vm.addr(deployerPrivateKey);
-        
+
         console.log("Admin address:", admin);
     }
 
     // ============ Main Deployment Function ============
-    
+
     /**
      * @notice Main deployment function
      * @dev Deploys the LoopingHelper and SuperlendLoopingStrategyFactory contracts
@@ -71,33 +71,30 @@ contract DeployLoopingLeverage is Script {
 
         // Deploy the LoopingHelper contract
         loopingHelper = _deployLoopingHelper();
-        
+
         // Deploy the strategy factory
         factory = _deployStrategyFactory();
-        
+
         // Transfer factory ownership to the admin
         _transferFactoryOwnership();
 
         // Log deployment addresses
         _logDeploymentAddresses();
-        
+
         // Stop broadcasting transactions
         vm.stopBroadcast();
     }
 
     // ============ Private Helper Functions ============
-    
+
     /**
      * @notice Deploys the LoopingHelper contract
      * @return The deployed LoopingHelper contract instance
      */
     function _deployLoopingHelper() private returns (LoopingHelper) {
-        return new LoopingHelper(
-            IPoolAddressesProvider(ADDRESSES_PROVIDER),
-            DEX_MODULE
-        );
+        return new LoopingHelper(IPoolAddressesProvider(ADDRESSES_PROVIDER), DEX_MODULE);
     }
-    
+
     /**
      * @notice Deploys the SuperlendLoopingStrategyFactory contract
      * @return The deployed SuperlendLoopingStrategyFactory contract instance
@@ -105,14 +102,14 @@ contract DeployLoopingLeverage is Script {
     function _deployStrategyFactory() private returns (SuperlendLoopingStrategyFactory) {
         return new SuperlendLoopingStrategyFactory();
     }
-    
+
     /**
      * @notice Transfers ownership of the factory to the admin
      */
     function _transferFactoryOwnership() private {
         factory.transferOwnership(admin);
     }
-    
+
     /**
      * @notice Logs the deployed contract addresses
      */
