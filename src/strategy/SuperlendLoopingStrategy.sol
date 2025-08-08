@@ -174,7 +174,7 @@ contract SuperlendLoopingStrategy is Ownable, SuperlendLoopingStrategyStorage {
      *      been accidentally sent to this contract back to the owner
      * @param tokens An array of token addresses to recover
      */
-    function skim(address[] memory tokens) external {
+    function skim(address[] memory tokens) external onlyOwner {
         uint256 len = tokens.length;
         for (uint256 i; i < len;) {
             // Get the balance of the token in this contract

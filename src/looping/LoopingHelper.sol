@@ -6,10 +6,10 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {FlashLoanSimpleReceiverBase} from "aave-v3-core/contracts/flashloan/base/FlashLoanSimpleReceiverBase.sol";
 import {IPoolAddressesProvider} from "aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol";
+import {IPoolDataProvider} from "aave-v3-core/contracts/interfaces/IPoolDataProvider.sol";
 import {LoopingHelperSwaps} from "./LoopingHelperSwaps.sol";
 import {LoopingHelperEncoding} from "./LoopingHelperEncoding.sol";
 import {DataTypes, ExecuteSwapParams} from "./DataTypes.sol";
-import {console} from "forge-std/console.sol";
 
 /**
  * @title LoopingHelper
@@ -227,8 +227,19 @@ contract LoopingHelper is FlashLoanSimpleReceiverBase, ReentrancyGuard, LoopingH
 
         // If there are leftover borrow tokens, use them to repay user's debt
         if (leftOverBorrowAmount > 0) {
-            IERC20(borrowToken).safeIncreaseAllowance(address(POOL), leftOverBorrowAmount);
-            POOL.repay(borrowToken, leftOverBorrowAmount, INTEREST_RATE_MODE, user);
+            IPoolDataProvider poolDataProvider = IPoolDataProvider(ADDRESSES_PROVIDER.getPoolDataProvider());
+            // if user has any debt, repay it
+            (,, uint256 borrowAmount,,,,,,) = poolDataProvider.getUserReserveData(borrowToken, user);
+            if (borrowAmount > 0) {
+                uint256 repayAmount = borrowAmount > leftOverBorrowAmount ? leftOverBorrowAmount : borrowAmount;
+                IERC20(borrowToken).safeIncreaseAllowance(address(POOL), repayAmount);
+                POOL.repay(borrowToken, repayAmount, INTEREST_RATE_MODE, user);
+                leftOverBorrowAmount -= repayAmount;
+            }
+            // send the remaining tokens to the user
+            if (leftOverBorrowAmount > 0) {
+                IERC20(borrowToken).safeTransfer(user, leftOverBorrowAmount);
+            }
         }
     }
 }
