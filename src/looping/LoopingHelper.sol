@@ -226,7 +226,7 @@ contract LoopingHelper is FlashLoanSimpleReceiverBase, ReentrancyGuard, LoopingH
         }
 
         // If there are leftover borrow tokens, use them to repay user's debt
-        if (leftOverBorrowAmount > 0) {
+        if (supplyToken != borrowToken && leftOverBorrowAmount > 0) {
             IPoolDataProvider poolDataProvider = IPoolDataProvider(ADDRESSES_PROVIDER.getPoolDataProvider());
             // if user has any debt, repay it
             (,, uint256 borrowAmount,,,,,,) = poolDataProvider.getUserReserveData(borrowToken, user);
