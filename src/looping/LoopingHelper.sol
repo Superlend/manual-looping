@@ -149,6 +149,13 @@ contract LoopingHelper is FlashLoanSimpleReceiverBase, ReentrancyGuard, LoopingH
         // Handle any leftover amounts after the operation
         uint256 leftOverSupplyAmount = IERC20(loopParams.supplyToken).balanceOf(address(this)) - flashloanRepayAmount;
         uint256 leftOverBorrowAmount = IERC20(loopParams.borrowToken).balanceOf(address(this));
+        if (loopParams.supplyToken == loopParams.borrowToken) {
+            // use the leftover amount ie. balance - flashloanRepayAmount to repay additional debt
+            // NOTE: We will always have some debt to repay because we just opened a loop position
+            // and it's advantageous to repay the debt with the leftover supply tokens
+            leftOverBorrowAmount = leftOverSupplyAmount;
+            leftOverSupplyAmount = 0;
+        }
         _handleLeftOverAmounts(
             loopParams.supplyToken, loopParams.borrowToken, leftOverSupplyAmount, leftOverBorrowAmount, loopParams.user
         );
@@ -189,6 +196,14 @@ contract LoopingHelper is FlashLoanSimpleReceiverBase, ReentrancyGuard, LoopingH
         // Handle any leftover amounts after the operation
         uint256 leftOverSupplyAmount = IERC20(unloopParams.supplyToken).balanceOf(address(this));
         uint256 leftOverBorrowAmount = IERC20(unloopParams.borrowToken).balanceOf(address(this)) - flashloanRepayAmount;
+        if (unloopParams.supplyToken == unloopParams.borrowToken) {
+            // use the leftover amount ie. balance - flashloanRepayAmount as additional supply
+            // NOTE: we do not want to repay the debt because debt may be 0 incase of unloop
+            // which will result in tokens getting transfered to the user. 
+            leftOverSupplyAmount = leftOverBorrowAmount;
+            leftOverBorrowAmount = 0;
+        }
+        
         _handleLeftOverAmounts(
             unloopParams.supplyToken,
             unloopParams.borrowToken,

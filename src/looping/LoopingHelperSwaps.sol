@@ -40,6 +40,9 @@ abstract contract LoopingHelperSwaps {
         internal
         returns (uint256)
     {
+        // If no swap data is provided, skip the swap and return the input amount
+        if (swapParams.data.length == 0) return amountIn;
+
         // Approve the universal DEX module to spend the input tokens
         IERC20(tokenIn).safeIncreaseAllowance(address(universalDexModule), amountIn);
 
