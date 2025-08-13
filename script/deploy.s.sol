@@ -25,8 +25,8 @@ contract DeployLoopingLeverage is Script {
     /// @notice The deployed SuperlendLoopingStrategyFactory contract
     SuperlendLoopingStrategyFactory public factory;
 
-    /// @notice The deployer/admin address
-    address public admin;
+    /// @notice The deployer
+    address public deployer;
 
     // ============ Constants ============
 
@@ -37,7 +37,10 @@ contract DeployLoopingLeverage is Script {
     address private constant ADDRESSES_PROVIDER = 0x5ccF60c7E10547c5389E9cBFf543E5D0Db9F4feC;
 
     /// @notice Universal DEX Module address
-    address private constant DEX_MODULE = 0x2871677D649019A4e901C8b0f5a3B6Fa88900a91;
+    address private constant DEX_MODULE = 0x38F5efC1267F6103c9b0FE802E1731E245f09Cd0;
+
+    /// @notice The admin address
+    address public FACTORY_ADMIN = 0x81b833Df09A7ce39C00ecE916EC54166d2a6B193;
 
     // ============ Setup Function ============
 
@@ -52,10 +55,10 @@ contract DeployLoopingLeverage is Script {
         // Load the deployer's private key from environment variables
         deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
-        // Derive the admin address from the private key
-        admin = vm.addr(deployerPrivateKey);
+        // Derive the deployer address from the private key
+        deployer = vm.addr(deployerPrivateKey);
 
-        console.log("Admin address:", admin);
+        console.log("Deployer address:", deployer);
     }
 
     // ============ Main Deployment Function ============
@@ -107,7 +110,7 @@ contract DeployLoopingLeverage is Script {
      * @notice Transfers ownership of the factory to the admin
      */
     function _transferFactoryOwnership() private {
-        factory.transferOwnership(admin);
+        factory.transferOwnership(FACTORY_ADMIN);
     }
 
     /**
