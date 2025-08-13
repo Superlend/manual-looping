@@ -25,6 +25,75 @@ contract StrategyUnloopTest is TestBase {
         pool = IPoolAddressesProvider(ADDRESSES_PROVIDER).getPool();
     }
 
+    function test_unloopBench() external {
+        factory = SuperlendLoopingStrategyFactory(0x6B815ef30E99f1394592a36E5b00b732Fbe2C230);
+        loopingHelper = LoopingHelper(0x8b61275b06d86055D209258a187076D8E72DBd3d);
+        DEX_MODULE = 0x2871677D649019A4e901C8b0f5a3B6Fa88900a91;
+
+        address supplyToken = USDC;
+        address borrowToken = MTBILL;
+        address user = 0x03adFaA573aC1a9b19D2b8F79a5aAFFb9c2A0532;
+        address strategy = factory.getUserStrategy(user, pool, supplyToken, borrowToken, 1);
+
+        uint256 balanceBefore = IERC20(supplyToken).balanceOf(user);
+        console.log("balance before unloop ", balanceBefore);
+
+        (uint256 supply,,,,,,,,) = poolDataProvider.getUserReserveData(supplyToken, strategy);
+        console.log("supply ", supply);
+        (,, uint256 borrow,,,,,,) = poolDataProvider.getUserReserveData(borrowToken, strategy);
+        console.log("borrow ", borrow);
+
+        uint256 repayAmount = borrow - 10;
+        uint256 withdrawAmount = supply;
+        uint256 repayAmountWithPremium = repayAmount + ((repayAmount * 5) / 10_000) + 1;
+
+        ExecuteSwapParamsData[] memory data = new ExecuteSwapParamsData[](2);
+        data[0] = ExecuteSwapParamsData({
+            target: supplyToken,
+            data: abi.encodeWithSelector(IERC20.approve.selector, SWAP_ROUTER, withdrawAmount)
+        });
+        data[1] = ExecuteSwapParamsData({
+            target: SWAP_ROUTER,
+            data: abi.encodeWithSelector(
+                IV3SwapRouter.exactOutputSingle.selector,
+                IV3SwapRouter.ExactOutputSingleParams({
+                    tokenIn: supplyToken,
+                    tokenOut: borrowToken,
+                    fee: 500,
+                    recipient: DEX_MODULE,
+                    amountOut: repayAmountWithPremium,
+                    amountInMaximum: withdrawAmount,
+                    sqrtPriceLimitX96: 0
+                })
+            )
+        });
+
+        ExecuteSwapParams memory swapParams = ExecuteSwapParams({
+            tokenIn: supplyToken,
+            tokenOut: borrowToken,
+            amountIn: withdrawAmount,
+            maxAmountIn: withdrawAmount,
+            minAmountOut: repayAmount,
+            data: data
+        });
+
+        vm.startPrank(user);
+
+        SuperlendLoopingStrategy(strategy).closePosition(
+            repayAmount, withdrawAmount, swapParams, withdrawAmount, type(uint256).max
+        );
+
+        vm.stopPrank();
+
+        (uint256 supplyAfter,,,,,,,,) = poolDataProvider.getUserReserveData(supplyToken, strategy);
+        console.log("supply after unloop ", supplyAfter);
+        (,, uint256 borrowAfter,,,,,,) = poolDataProvider.getUserReserveData(borrowToken, strategy);
+        console.log("borrow after unloop ", borrowAfter);
+
+        uint256 balanceAfter = IERC20(supplyToken).balanceOf(user);
+        console.log("balance after unloop ", balanceAfter);
+    }
+
     function test_unloopSingleHop() external {
         (address strategy, uint256 _borrow,) = _createLoop();
 

@@ -37,7 +37,7 @@ contract DeployLoopingLeverage is Script {
     address private constant ADDRESSES_PROVIDER = 0x5ccF60c7E10547c5389E9cBFf543E5D0Db9F4feC;
 
     /// @notice Universal DEX Module address
-    address private constant DEX_MODULE = 0x625DDA590E92B5F4DAc40CfC12941B11b936c828;
+    address private constant DEX_MODULE = 0x2871677D649019A4e901C8b0f5a3B6Fa88900a91;
 
     // ============ Setup Function ============
 

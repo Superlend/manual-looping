@@ -11,6 +11,7 @@ import {SuperlendLoopingStrategy} from "../../src/strategy/SuperlendLoopingStrat
 import {ExecuteSwapParamsData} from "../../src/dependencies/IDexModule.sol";
 import {IV3SwapRouter} from "../../src/dependencies/IV3SwapRouter.sol";
 import {ExecuteSwapParams} from "../../src/dependencies/IDexModule.sol";
+import {ICurvePool} from "../../src/dependencies/ICurvePool.sol";
 
 contract StrategyLoopTest is TestBase {
     SuperlendLoopingStrategyFactory public factory;
@@ -25,34 +26,38 @@ contract StrategyLoopTest is TestBase {
         pool = IPoolAddressesProvider(ADDRESSES_PROVIDER).getPool();
     }
 
-    function test_loopSingleHop() external {
-        // create a 2x loop position
-        address supplyToken = ETH;
-        address borrowToken = WXTZ;
-        uint256 supplyAmount = ETH_AMOUNT;
-        uint256 flashLoanAmount = (supplyAmount * 15) / 10 - supplyAmount;
-        uint256 borrowAmount = 46 ether;
-        uint256 repayAmount = flashLoanAmount + ((flashLoanAmount * 5) / 10_000);
+    function test_loopBench() external {
+        factory = SuperlendLoopingStrategyFactory(0xb3A40C67884c8BB8aC4dC1FFbddC1ecb09adB221);
+        loopingHelper = LoopingHelper(0x495AfD591939cb2C3f50c6F58bb0a08b483b3f57);
+        DEX_MODULE = 0x2871677D649019A4e901C8b0f5a3B6Fa88900a91;
+        address curvePool = 0x1E8D78e9b3f0152D54d32904B7933f1cFE439Df1;
+
+        address supplyToken = LBTC;
+        address borrowToken = WBTC;
+        address user = 0x03adFaA573aC1a9b19D2b8F79a5aAFFb9c2A0532;
+        address strategy = factory.getUserStrategy(user, pool, supplyToken, borrowToken, 2);
+
+        uint256 balanceBefore = IERC20(supplyToken).balanceOf(user);
+        console.log("balance before unloop ", balanceBefore);
+
+        (uint256 supply,,,,,,,,) = poolDataProvider.getUserReserveData(supplyToken, strategy);
+        console.log("supply ", supply);
+        (,, uint256 borrow,,,,,,) = poolDataProvider.getUserReserveData(borrowToken, strategy);
+        console.log("borrow ", borrow);
+
+        uint256 supplyAmount = 11945;
+        uint256 flashLoanAmount = 12004;
+        uint256 borrowAmount = 12215;
+        uint256 flashLoanAmountWithPremium = flashLoanAmount + ((flashLoanAmount * 5) / 10_000);
 
         ExecuteSwapParamsData[] memory data = new ExecuteSwapParamsData[](2);
         data[0] = ExecuteSwapParamsData({
             target: borrowToken,
-            data: abi.encodeWithSelector(IERC20.approve.selector, SWAP_ROUTER, borrowAmount)
+            data: abi.encodeWithSelector(IERC20.approve.selector, curvePool, borrowAmount)
         });
         data[1] = ExecuteSwapParamsData({
-            target: SWAP_ROUTER,
-            data: abi.encodeWithSelector(
-                IV3SwapRouter.exactOutputSingle.selector,
-                IV3SwapRouter.ExactOutputSingleParams({
-                    tokenIn: borrowToken,
-                    tokenOut: supplyToken,
-                    fee: 500,
-                    recipient: DEX_MODULE,
-                    amountOut: repayAmount,
-                    amountInMaximum: borrowAmount,
-                    sqrtPriceLimitX96: 0
-                })
-            )
+            target: curvePool,
+            data: abi.encodeWithSelector(ICurvePool.exchange.selector, int128(1), int128(0), 12215, 12213)
         });
 
         ExecuteSwapParams memory swapParams = ExecuteSwapParams({
@@ -60,80 +65,137 @@ contract StrategyLoopTest is TestBase {
             tokenOut: supplyToken,
             amountIn: borrowAmount,
             maxAmountIn: borrowAmount,
-            minAmountOut: repayAmount,
+            minAmountOut: flashLoanAmountWithPremium,
             data: data
         });
 
-        vm.startPrank(USER);
+        vm.startPrank(user);
 
-        // create a strategy with mtbill/usdc with 1 emode
-        factory.createStrategy(address(loopingHelper), pool, supplyToken, borrowToken, 0);
-        address strategy = factory.getUserStrategy(USER, pool, supplyToken, borrowToken, 0);
-
-        IERC20(supplyToken).approve(address(strategy), supplyAmount);
-
+        IERC20(supplyToken).approve(strategy, supplyAmount);
         SuperlendLoopingStrategy(strategy).openPosition(
-            supplyAmount, flashLoanAmount, borrowAmount, swapParams, type(uint256).max
+            supplyAmount, flashLoanAmount, borrowAmount, swapParams, borrowAmount
         );
 
         vm.stopPrank();
 
-        (uint256 supply,,,,,,,,) = poolDataProvider.getUserReserveData(supplyToken, strategy);
+        (uint256 supplyAfter,,,,,,,,) = poolDataProvider.getUserReserveData(supplyToken, strategy);
+        console.log("supply after loop ", supplyAfter);
+        (,, uint256 borrowAfter,,,,,,) = poolDataProvider.getUserReserveData(borrowToken, strategy);
+        console.log("borrow after loop ", borrowAfter);
 
-        (,, uint256 borrow,,,,,,) = poolDataProvider.getUserReserveData(borrowToken, strategy);
-
-        console.log("supply", supply);
-        console.log("borrow", borrow);
-
-        assert(supply > 0);
-        assert(borrow > 0);
-
-        // INCREASE LEVERAGE BY 0.5X
-        flashLoanAmount = 5 * supplyAmount / 10;
-        borrowAmount = 25 ether;
-        repayAmount = flashLoanAmount + ((flashLoanAmount * 5) / 10_000);
-
-        data[0] = ExecuteSwapParamsData({
-            target: borrowToken,
-            data: abi.encodeWithSelector(IERC20.approve.selector, SWAP_ROUTER, borrowAmount)
-        });
-        data[1] = ExecuteSwapParamsData({
-            target: SWAP_ROUTER,
-            data: abi.encodeWithSelector(
-                IV3SwapRouter.exactOutputSingle.selector,
-                IV3SwapRouter.ExactOutputSingleParams({
-                    tokenIn: borrowToken,
-                    tokenOut: supplyToken,
-                    fee: 500,
-                    recipient: DEX_MODULE,
-                    amountOut: repayAmount,
-                    amountInMaximum: borrowAmount,
-                    sqrtPriceLimitX96: 0
-                })
-            )
-        });
-
-        swapParams = ExecuteSwapParams({
-            tokenIn: borrowToken,
-            tokenOut: supplyToken,
-            amountIn: borrowAmount,
-            maxAmountIn: borrowAmount,
-            minAmountOut: repayAmount,
-            data: data
-        });
-
-        vm.startPrank(USER);
-        SuperlendLoopingStrategy(strategy).openPosition(0, flashLoanAmount, borrowAmount, swapParams, type(uint256).max);
-        vm.stopPrank();
-
-        (uint256 supply2,,,,,,,,) = poolDataProvider.getUserReserveData(supplyToken, strategy);
-
-        (,, uint256 borrow2,,,,,,) = poolDataProvider.getUserReserveData(borrowToken, strategy);
-
-        assert(supply2 > supply);
-        assert(borrow2 > borrow);
-
-        console.log("supply2", supply2);
-        console.log("borrow2", borrow2);
+        uint256 balanceAfter = IERC20(supplyToken).balanceOf(user);
+        console.log("balance after loop ", balanceAfter);
     }
+
+    // function test_loopSingleHop() external {
+    //     // create a 2x loop position
+    //     address supplyToken = ETH;
+    //     address borrowToken = WXTZ;
+    //     uint256 supplyAmount = ETH_AMOUNT;
+    //     uint256 flashLoanAmount = (supplyAmount * 15) / 10 - supplyAmount;
+    //     uint256 borrowAmount = 46 ether;
+    //     uint256 repayAmount = flashLoanAmount + ((flashLoanAmount * 5) / 10_000);
+
+    //     ExecuteSwapParamsData[] memory data = new ExecuteSwapParamsData[](2);
+    //     data[0] = ExecuteSwapParamsData({
+    //         target: borrowToken,
+    //         data: abi.encodeWithSelector(IERC20.approve.selector, SWAP_ROUTER, borrowAmount)
+    //     });
+    //     data[1] = ExecuteSwapParamsData({
+    //         target: SWAP_ROUTER,
+    //         data: abi.encodeWithSelector(
+    //             IV3SwapRouter.exactOutputSingle.selector,
+    //             IV3SwapRouter.ExactOutputSingleParams({
+    //                 tokenIn: borrowToken,
+    //                 tokenOut: supplyToken,
+    //                 fee: 500,
+    //                 recipient: DEX_MODULE,
+    //                 amountOut: repayAmount,
+    //                 amountInMaximum: borrowAmount,
+    //                 sqrtPriceLimitX96: 0
+    //             })
+    //         )
+    //     });
+
+    //     ExecuteSwapParams memory swapParams = ExecuteSwapParams({
+    //         tokenIn: borrowToken,
+    //         tokenOut: supplyToken,
+    //         amountIn: borrowAmount,
+    //         maxAmountIn: borrowAmount,
+    //         minAmountOut: repayAmount,
+    //         data: data
+    //     });
+
+    //     vm.startPrank(USER);
+
+    //     // create a strategy with mtbill/usdc with 1 emode
+    //     factory.createStrategy(address(loopingHelper), pool, supplyToken, borrowToken, 0);
+    //     address strategy = factory.getUserStrategy(USER, pool, supplyToken, borrowToken, 0);
+
+    //     IERC20(supplyToken).approve(address(strategy), supplyAmount);
+
+    //     SuperlendLoopingStrategy(strategy).openPosition(
+    //         supplyAmount, flashLoanAmount, borrowAmount, swapParams, type(uint256).max
+    //     );
+
+    //     vm.stopPrank();
+
+    //     (uint256 supply,,,,,,,,) = poolDataProvider.getUserReserveData(supplyToken, strategy);
+
+    //     (,, uint256 borrow,,,,,,) = poolDataProvider.getUserReserveData(borrowToken, strategy);
+
+    //     console.log("supply", supply);
+    //     console.log("borrow", borrow);
+
+    //     assert(supply > 0);
+    //     assert(borrow > 0);
+
+    //     // INCREASE LEVERAGE BY 0.5X
+    //     flashLoanAmount = 5 * supplyAmount / 10;
+    //     borrowAmount = 25 ether;
+    //     repayAmount = flashLoanAmount + ((flashLoanAmount * 5) / 10_000);
+
+    //     data[0] = ExecuteSwapParamsData({
+    //         target: borrowToken,
+    //         data: abi.encodeWithSelector(IERC20.approve.selector, SWAP_ROUTER, borrowAmount)
+    //     });
+    //     data[1] = ExecuteSwapParamsData({
+    //         target: SWAP_ROUTER,
+    //         data: abi.encodeWithSelector(
+    //             IV3SwapRouter.exactOutputSingle.selector,
+    //             IV3SwapRouter.ExactOutputSingleParams({
+    //                 tokenIn: borrowToken,
+    //                 tokenOut: supplyToken,
+    //                 fee: 500,
+    //                 recipient: DEX_MODULE,
+    //                 amountOut: repayAmount,
+    //                 amountInMaximum: borrowAmount,
+    //                 sqrtPriceLimitX96: 0
+    //             })
+    //         )
+    //     });
+
+    //     swapParams = ExecuteSwapParams({
+    //         tokenIn: borrowToken,
+    //         tokenOut: supplyToken,
+    //         amountIn: borrowAmount,
+    //         maxAmountIn: borrowAmount,
+    //         minAmountOut: repayAmount,
+    //         data: data
+    //     });
+
+    //     vm.startPrank(USER);
+    //     SuperlendLoopingStrategy(strategy).openPosition(0, flashLoanAmount, borrowAmount, swapParams, type(uint256).max);
+    //     vm.stopPrank();
+
+    //     (uint256 supply2,,,,,,,,) = poolDataProvider.getUserReserveData(supplyToken, strategy);
+
+    //     (,, uint256 borrow2,,,,,,) = poolDataProvider.getUserReserveData(borrowToken, strategy);
+
+    //     assert(supply2 > supply);
+    //     assert(borrow2 > borrow);
+
+    //     console.log("supply2", supply2);
+    //     console.log("borrow2", borrow2);
+    // }
 }
